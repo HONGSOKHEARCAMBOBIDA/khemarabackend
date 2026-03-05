@@ -1,0 +1,6 @@
+./create/create_module.sh Permission
+
+{
+    "username":"hear",
+    "password":"123"
+}
