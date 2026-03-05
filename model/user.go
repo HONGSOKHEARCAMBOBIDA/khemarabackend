@@ -1,12 +1,14 @@
 package model
 
 type User struct {
-	ID       int    `json:"id"`
-	Name     string `json:"name"`
-	Username string `json:"username"`
-	Password string `json:"password"`
-	RoleId   int    `json:"role_id"`
-	Email    string `json:"email"`
-	Phone    string `json:"phone"`
-	Isactive bool   `json:"is_active"`
+	ID           int    `json:"id"`
+	UserName     string `json:"username"`
+	Email        string `json:"email"`
+	Password     string `json:"password"`
+	Contact      string `json:"contact"`
+	BranchID     int    `json:"branch_id"`
+	RoleID       int    `json:"role_id"`
+	EmployeeID   int    `json:"employee_id"`
+	Isactive     bool   `json:"is_active"`
+	ManageBranch int    `json:"manage_branch"`
 }

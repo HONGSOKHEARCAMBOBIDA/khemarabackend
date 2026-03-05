@@ -38,7 +38,7 @@ func (s *authservice) Login(input request.AuthRequest) (*response.AuthResponse, 
 	// 1. Find user
 	var user model.User
 	if err := s.db.
-		Where("(phone = ? OR email = ? OR username = ?) AND isactive = ?",
+		Where("(contact = ? OR email = ? OR username = ?) AND is_active = ?",
 			input.UserName, input.UserName, input.UserName, 1).
 		First(&user).Error; err != nil {
 
