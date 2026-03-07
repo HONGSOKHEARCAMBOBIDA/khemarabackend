@@ -1,8 +1,13 @@
 package permission
 
 const (
-	ViewRole         = "view-role"
-	AddRole          = "add-role"
-	EditRole         = "edit-role"
-	ChangeStatusRole = "change-status-role"
+	// Role
+	ViewRole         = "role.read"
+	AddRole          = "role.create"
+	EditRole         = "role.update"
+	ChangeStatusRole = "role.change.status"
+
+	// RoleHasPermission
+	AddPermissionTORole      = "add.permission.to.role"
+	RemovePermissionFromRole = "remove.permission.from.role"
 )

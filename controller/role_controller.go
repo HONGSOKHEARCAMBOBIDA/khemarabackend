@@ -35,6 +35,10 @@ func (cr RoleController) CreateRole(c *gin.Context) {
 		share.ResponseError(c, http.StatusBadRequest, err.Error())
 		return
 	}
+	if err := cr.service.CreateRole(input); err != nil {
+		share.ResponseError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
 	share.ResponseSuccess(c, http.StatusOK, "Role Created")
 }
 

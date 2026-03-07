@@ -41,7 +41,6 @@ func (s *authservice) Login(input request.AuthRequest) (*response.AuthResponse, 
 		Where("(contact = ? OR email = ? OR username = ?) AND is_active = ?",
 			input.UserName, input.UserName, input.UserName, 1).
 		First(&user).Error; err != nil {
-
 		return nil, errors.New("ព័ត៌មានមិនត្រឹមត្រូវ ឬ អ្នកប្រើប្រាស់ត្រូវបានបិទគណនី")
 	}
 
@@ -60,11 +59,18 @@ func (s *authservice) Login(input request.AuthRequest) (*response.AuthResponse, 
 
 	// 4. Generate JWT
 	expirationTime := time.Now().Add(24 * time.Hour)
+	var userparts []response.UserPartResponse
+	if err := s.db.Table("user_parts up").
+		Select("up.id AS id,p.id AS part_id,p.name AS part_name,p.display_name AS part_display_name").
+		Joins("JOIN parts p ON p.id = up.part_id").
+		Where("up.user_id =?", user.ID).Scan(&userparts).Error; err != nil {
+		return nil, err
+	}
 
 	claims := jwt.MapClaims{
 		"user_id": user.ID,
-		"phone":   user.Phone,
-		"role_id": user.RoleId,
+		"contact": user.Contact,
+		"role_id": user.RoleID,
 		"exp":     expirationTime.Unix(),
 	}
 
@@ -77,10 +83,13 @@ func (s *authservice) Login(input request.AuthRequest) (*response.AuthResponse, 
 
 	// 5. Build response
 	resp := &response.AuthResponse{
-		ID:     user.ID,
-		Name:   user.Username,
-		Token:  tokenStr,
-		RoleID: user.RoleId,
+		ID:           user.ID,
+		Name:         user.UserName,
+		Contact:      user.Contact,
+		Token:        tokenStr,
+		RoleID:       uint(user.RoleID),
+		Parts:        userparts,
+		ManageBranch: user.ManageBranch,
 	}
 
 	return resp, nil
