@@ -7,4 +7,5 @@ type PermissionWithAssignedRole struct {
 	GroupName   string `json:"group_name" gorm:"column:group_name"`
 	Shortname   int    `json:"short_name" gorm:"column:short_name"`
 	Assigned    bool   `json:"assigned"`
+	RoleID      int    `json:"role_id"`
 }

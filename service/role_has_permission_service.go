@@ -83,6 +83,7 @@ func (s *rolehaspermissionservice) GetRoleHasPermission(id int) ([]response.Perm
 			p.display_name AS display_name,
 			p.group_name AS group_name,
 			p.short_name AS short_name,
+			rhp.role_id AS role_id,
 			CASE 
 				WHEN rhp.permission_id IS NULL THEN false
 				ELSE true
