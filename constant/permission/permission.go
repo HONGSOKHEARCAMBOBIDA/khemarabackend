@@ -8,6 +8,7 @@ const (
 	ChangeStatusRole = "role.change.status"
 
 	// RoleHasPermission
+	ViewRoleHasPermission    = "view.role.has.permission"
 	AddPermissionTORole      = "add.permission.to.role"
 	RemovePermissionFromRole = "remove.permission.from.role"
 )

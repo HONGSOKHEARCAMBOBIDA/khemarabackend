@@ -5,6 +5,7 @@ import (
 	"mysql/request"
 	"mysql/service"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -49,4 +50,22 @@ func (cr *RoleHasPermissionController) DeleteRoleHasPermission(c *gin.Context) {
 	}
 
 	share.ResponseSuccess(c, http.StatusOK, "Permission removed from role")
+}
+
+func (cr *RoleHasPermissionController) GetRoleHasPermission(c *gin.Context) {
+	idparam := c.Param("id")
+
+	id, err := strconv.Atoi(idparam)
+	if err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	rolehaspermission, err := cr.service.GetRoleHasPermission(id)
+	if err != nil {
+		share.ResponseError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	share.RespondDate(c, http.StatusOK, rolehaspermission)
 }

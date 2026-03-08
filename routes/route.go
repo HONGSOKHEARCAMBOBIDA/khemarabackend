@@ -24,5 +24,6 @@ func SetupRoutes(r *gin.Engine) {
 		auth.PUT(route.ChangeStatusRole, middleware.PermissionMiddleware(permission.ChangeStatusRole), rolecontroller.ChangeStatusRole)
 		auth.POST(route.AddPermissionTORole, middleware.PermissionMiddleware(permission.AddPermissionTORole), rolehaspermissioncontroller.CreateRoleHasPermission)
 		auth.DELETE(route.RemovePermissionFromRole, middleware.PermissionMiddleware(permission.RemovePermissionFromRole), rolehaspermissioncontroller.DeleteRoleHasPermission)
+		auth.GET(route.ViewRoleHasPermission, middleware.PermissionMiddleware(permission.ViewRoleHasPermission), rolehaspermissioncontroller.GetRoleHasPermission)
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"mysql/config"
 	"mysql/model"
 	"mysql/request"
+	"mysql/response"
 
 	"gorm.io/gorm"
 )
@@ -12,6 +13,7 @@ import (
 type RoleHasPermissionService interface {
 	CreateRoleHasPermission(input request.RoleHasPermissionRequestCreate) error
 	DeleteRoleHasPermission(input request.RoleHasPermissionRequestDelete) error
+	GetRoleHasPermission(id int) ([]response.PermissionWithAssignedRole, error)
 }
 
 type rolehaspermissionservice struct {
@@ -68,4 +70,30 @@ func (s *rolehaspermissionservice) DeleteRoleHasPermission(input request.RoleHas
 
 		return nil
 	})
+}
+
+func (s *rolehaspermissionservice) GetRoleHasPermission(id int) ([]response.PermissionWithAssignedRole, error) {
+
+	var rolehaspermission []response.PermissionWithAssignedRole
+
+	err := s.db.Table("permissions p").
+		Select(`
+			p.id AS id,
+			p.name AS name,
+			p.display_name AS display_name,
+			p.group_name AS group_name,
+			p.short_name AS short_name,
+			CASE 
+				WHEN rhp.permission_id IS NULL THEN false
+				ELSE true
+			END AS assigned
+		`).
+		Joins("LEFT JOIN role_has_permissions rhp ON rhp.permission_id = p.id AND rhp.role_id = ?", id).
+		Scan(&rolehaspermission).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return rolehaspermission, nil
 }
