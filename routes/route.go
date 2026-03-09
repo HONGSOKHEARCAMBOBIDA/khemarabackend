@@ -16,6 +16,7 @@ func SetupRoutes(r *gin.Engine) {
 	employeetypecontroller := controller.NewEmployeeTypeController()
 	educationlevelcontroller := controller.NewEducationLevelController()
 	branchcontroller := controller.NewBranchController()
+	departmentcontroller := controller.NewDepartmentController()
 	r.Static("/clientimage", "./public/clientimage")
 	r.POST("/login", authcontroller.Login)
 	auth := r.Group("/")
@@ -47,5 +48,11 @@ func SetupRoutes(r *gin.Engine) {
 		auth.POST(route.AddBranch, middleware.PermissionMiddleware(permission.AddBranch), branchcontroller.CreateBranch)
 		auth.PUT(route.UpdateBranch, middleware.PermissionMiddleware(permission.UpdateBranch), branchcontroller.UpdateBranch)
 		auth.PUT(route.ChangeStatusBranch, middleware.PermissionMiddleware(permission.ChangeStatusBranch), branchcontroller.ChangeStatusBranch)
+
+		// Department
+		auth.GET(route.ViewDepartment, middleware.PermissionMiddleware(permission.ViewDepartment), departmentcontroller.GetDepartment)
+		auth.POST(route.AddDepartment, middleware.PermissionMiddleware(permission.AddDepartment), departmentcontroller.CreateDepartment)
+		auth.PUT(route.UpdateDepartment, middleware.PermissionMiddleware(permission.UpdateDepartment), departmentcontroller.UpdateDepartment)
+		auth.PUT(route.ChangeStatusDepartment, middleware.PermissionMiddleware(permission.ChangeStatusDepartment), departmentcontroller.ChangeStatusDepartment)
 	}
 }
