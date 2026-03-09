@@ -23,4 +23,10 @@ const (
 	AddEducationLevel          = "add.education.level"
 	UpdateEducationLevel       = "update.education.level"
 	ChangeStatusEducationLevel = "change.status.education.level"
+
+	// Branch
+	ViewBranch         = "view.branch"
+	AddBranch          = "add.branch"
+	UpdateBranch       = "update.branch"
+	ChangeStatusBranch = "change.status.branch"
 )
