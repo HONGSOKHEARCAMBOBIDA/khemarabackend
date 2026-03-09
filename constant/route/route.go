@@ -29,4 +29,10 @@ const (
 	AddBranch          = "add.branch"
 	UpdateBranch       = "update.branch/:id"
 	ChangeStatusBranch = "change.status.branch/:id"
+
+	// Department
+	ViewDepartment         = "view.department"
+	AddDepartment          = "add.department"
+	UpdateDepartment       = "update.department/:id"
+	ChangeStatusDepartment = "change.status.department/:id"
 )

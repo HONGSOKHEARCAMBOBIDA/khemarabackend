@@ -1,4 +1,4 @@
-./create/create_module.sh Branch
+./create/create_module.sh Department
 
 {
     "username":"hear",

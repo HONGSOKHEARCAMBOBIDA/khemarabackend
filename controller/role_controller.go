@@ -20,7 +20,7 @@ func NewRoleController() RoleController {
 	}
 }
 
-func (cr RoleController) GetRole(c *gin.Context) {
+func (cr *RoleController) GetRole(c *gin.Context) {
 	data, err := cr.service.GetRole()
 	if err != nil {
 		share.ResponseError(c, http.StatusInternalServerError, err.Error())
@@ -29,7 +29,7 @@ func (cr RoleController) GetRole(c *gin.Context) {
 	share.RespondDate(c, http.StatusOK, data)
 }
 
-func (cr RoleController) CreateRole(c *gin.Context) {
+func (cr *RoleController) CreateRole(c *gin.Context) {
 	var input request.RoleRequestCreate
 	if err := c.ShouldBindJSON(&input); err != nil {
 		share.ResponseError(c, http.StatusBadRequest, err.Error())
@@ -42,7 +42,7 @@ func (cr RoleController) CreateRole(c *gin.Context) {
 	share.ResponseSuccess(c, http.StatusOK, "Role Created")
 }
 
-func (cr RoleController) UpdateRole(c *gin.Context) {
+func (cr *RoleController) UpdateRole(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
@@ -61,7 +61,7 @@ func (cr RoleController) UpdateRole(c *gin.Context) {
 	share.ResponseSuccess(c, http.StatusOK, "Role Update")
 }
 
-func (cr RoleController) ChangeStatusRole(c *gin.Context) {
+func (cr *RoleController) ChangeStatusRole(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
