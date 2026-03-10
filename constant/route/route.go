@@ -42,4 +42,10 @@ const (
 	AddPosition              = "add.position"
 	UpdatePosition           = "update.position/:id"
 	ChangeStatusPosition     = "change.status.position/:id"
+
+	// PositionLevel
+	ViewPositionLevel         = "view.position.level"
+	AddPositionLevel          = "add.position.level"
+	UpdatePositionLevel       = "update.position.level/:id"
+	ChangeStatusPositionLevel = "change.status.position.level/:id"
 )
