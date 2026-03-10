@@ -35,4 +35,11 @@ const (
 	AddDepartment          = "add.department"
 	UpdateDepartment       = "update.department/:id"
 	ChangeStatusDepartment = "change.status.department/:id"
+
+	// Position
+	ViewPosition             = "view.position"
+	ViewPositionByDepartment = "view.position.bydepartment/:id"
+	AddPosition              = "add.position"
+	UpdatePosition           = "update.position/:id"
+	ChangeStatusPosition     = "change.status.position/:id"
 )

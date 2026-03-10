@@ -40,7 +40,7 @@ func (s *positionservice) GetAllPosition() ([]response.PositionResponse, error) 
 		d.name AS department_name,
 		d.display_name AS department_display_name
 	`).
-		Joins("LEFT JOIN departments d ON d.id = p.id")
+		Joins("LEFT JOIN departments d ON d.id = p.department_id")
 	if err := db.Order("p.id DESC").Scan(&position).Error; err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func (s *positionservice) GetByDepartmentID(id int) ([]response.PositionResponse
 		d.name AS department_name,
 		d.display_name AS department_display_name
 	`).
-		Joins("LEFT JOIN departments d ON d.id = p.id").Where("d.id =?", id)
+		Joins("LEFT JOIN departments d ON d.id = p.department_id").Where("d.id =?", id)
 	if err := db.Order("p.id DESC").Scan(&position).Error; err != nil {
 		return nil, err
 	}
