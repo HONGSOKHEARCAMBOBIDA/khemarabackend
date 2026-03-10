@@ -1,4 +1,4 @@
-./create/create_module.sh Department
+./create/create_module.sh Position
 
 {
     "username":"hear",
