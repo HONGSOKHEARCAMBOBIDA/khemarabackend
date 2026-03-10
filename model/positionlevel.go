@@ -1,0 +1,8 @@
+package model
+
+type PositionLevel struct {
+	ID          uint   `json:"id"`
+	Name        string `json:"name"`
+	DisplayName string `json:"display_name"`
+	Isactive    bool   `json:"is_active" gorm:"column:is_active"`
+}
