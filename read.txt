@@ -4,3 +4,7 @@
     "username":"hear",
     "password":"123"
 }
+
+:= declear and assigned
+= assigned
+== compare

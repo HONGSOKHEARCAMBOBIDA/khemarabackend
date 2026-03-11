@@ -47,4 +47,16 @@ const (
 	AddPositionLevel          = "add.position.level"
 	UpdatePositionLevel       = "update.position.level"
 	ChangeStatusPositionLevel = "change.status.position.level"
+
+	// Currency
+	ViewCurrency         = "view.currency"
+	AddCurrency          = "add.currency"
+	UpdateCurrency       = "upate.currency"
+	ChangeStatusCurrency = "change.status.currency"
+
+	// CurrencyPair
+	ViewCurrencyPair         = "view.currency.pair"
+	AddCurrencyPair          = "add.currency.pair"
+	UpdateCurrencyPair       = "update.currency_pair"
+	ChangeStatusCurrencyPair = "change.status.currency.pair"
 )

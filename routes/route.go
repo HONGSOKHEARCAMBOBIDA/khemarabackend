@@ -19,6 +19,7 @@ func SetupRoutes(r *gin.Engine) {
 	departmentcontroller := controller.NewDepartmentController()
 	positioncontroller := controller.NewPositionController()
 	positionlevelcontroller := controller.NewPositionLevelController()
+	currencycontroller := controller.NewCurrencyController()
 	r.Static("/clientimage", "./public/clientimage")
 	r.POST("/login", authcontroller.Login)
 	auth := r.Group("/")
@@ -69,5 +70,11 @@ func SetupRoutes(r *gin.Engine) {
 		auth.POST(route.AddPositionLevel, middleware.PermissionMiddleware(permission.AddPositionLevel), positionlevelcontroller.CreatePositionLevel)
 		auth.PUT(route.UpdatePositionLevel, middleware.PermissionMiddleware(permission.UpdatePositionLevel), positionlevelcontroller.UpdatePositionLevel)
 		auth.PUT(route.ChangeStatusPositionLevel, middleware.PermissionMiddleware(permission.ChangeStatusPositionLevel), positionlevelcontroller.ChangeStatusPositionLevel)
+
+		// Currency
+		auth.GET(route.ViewCurrency, middleware.PermissionMiddleware(permission.ViewCurrency), currencycontroller.GetCurrency)
+		auth.POST(route.AddCurrency, middleware.PermissionMiddleware(permission.AddCurrency), currencycontroller.CreateCurrency)
+		auth.PUT(route.UpdateCurrency, middleware.PermissionMiddleware(permission.UpdateCurrency), currencycontroller.UpdateCurrency)
+		auth.PUT(route.ChangeStatusCurrency, middleware.PermissionMiddleware(permission.ChangeStatusCurrency), currencycontroller.ChangeStatusCurrency)
 	}
 }
