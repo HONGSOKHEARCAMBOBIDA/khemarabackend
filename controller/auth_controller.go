@@ -25,7 +25,7 @@ func (cr AuthController) Login(c *gin.Context) {
 		share.ResponseError(c, 400, err.Error())
 		return
 	}
-	result, err := cr.service.Login(input)
+	result, err := cr.service.Login(input, c)
 	if err != nil {
 		share.ResponseError(c, http.StatusInternalServerError, err.Error())
 		return

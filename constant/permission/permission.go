@@ -57,6 +57,6 @@ const (
 	// CurrencyPair
 	ViewCurrencyPair         = "view.currency.pair"
 	AddCurrencyPair          = "add.currency.pair"
-	UpdateCurrencyPair       = "update.currency_pair"
+	UpdateCurrencyPair       = "update.currency.pair"
 	ChangeStatusCurrencyPair = "change.status.currency.pair"
 )
