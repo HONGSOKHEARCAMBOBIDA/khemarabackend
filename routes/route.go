@@ -21,6 +21,7 @@ func SetupRoutes(r *gin.Engine) {
 	positionlevelcontroller := controller.NewPositionLevelController()
 	currencycontroller := controller.NewCurrencyController()
 	currencypaircontroller := controller.NewCurrencyPairController()
+	exchangeratecontroller := controller.NewExchangeRateController()
 	r.Static("/clientimage", "./public/clientimage")
 	r.POST("/login", authcontroller.Login)
 	auth := r.Group("/")
@@ -83,5 +84,11 @@ func SetupRoutes(r *gin.Engine) {
 		auth.POST(route.AddCurrencyPair, middleware.PermissionMiddleware(permission.AddCurrencyPair), currencypaircontroller.CreateCurrencyPair)
 		auth.PUT(route.UpdateCurrencyPair, middleware.PermissionMiddleware(permission.UpdateCurrencyPair), currencypaircontroller.UpdateCurrencyPaire)
 		auth.PUT(route.ChangeStatusCurrencyPair, middleware.PermissionMiddleware(permission.ChangeStatusCurrencyPair), currencypaircontroller.ChangeStatusCurrencyPair)
+
+		// ExchangeRate
+		auth.GET(route.ViewExchangeRate, middleware.PermissionMiddleware(permission.ViewExchangeRate), exchangeratecontroller.GetExchangeRate)
+		auth.POST(route.AddExchangeRate, middleware.PermissionMiddleware(permission.AddExchangeRate), exchangeratecontroller.CreateExchangeRate)
+		auth.PUT(route.UpdateExchangeRate, middleware.PermissionMiddleware(permission.UpdateExchangeRate), exchangeratecontroller.UpdateExchangeRate)
+		auth.PUT(route.ChangeStatusExchangeRate, middleware.PermissionMiddleware(permission.ChangeStatusExchangeRate), exchangeratecontroller.ChangeStatusExchangeRate)
 	}
 }

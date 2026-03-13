@@ -103,7 +103,7 @@ func (s *exchangerateservice) UpdateExchangeRate(id int, input request.ExchangeR
 }
 
 func (s *exchangerateservice) ChangeStatusExchangeRate(id int) error {
-	result := s.db.Model(&model.ExchangeRate{}).Where("id =?", id).Update("is_active", gorm.Expr("NTO is_active"))
+	result := s.db.Model(&model.ExchangeRate{}).Where("id =?", id).Update("is_active", gorm.Expr("NOT is_active"))
 	if result.Error != nil {
 		return result.Error
 	}

@@ -59,4 +59,10 @@ const (
 	AddCurrencyPair          = "add.currency.pair"
 	UpdateCurrencyPair       = "update.currency.pair"
 	ChangeStatusCurrencyPair = "change.status.currency.pair"
+
+	// ExchangeRate
+	ViewExchangeRate         = "view.exchange.rate"
+	AddExchangeRate          = "add.exchange.rate"
+	UpdateExchangeRate       = "update.exchange.rate"
+	ChangeStatusExchangeRate = "change.status.exchange.rate"
 )
