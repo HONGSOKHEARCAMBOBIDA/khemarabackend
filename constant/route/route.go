@@ -66,4 +66,10 @@ const (
 	AddExchangeRate          = "add.exchange.rate"
 	UpdateExchangeRate       = "update.exchange.rate/:id"
 	ChangeStatusExchangeRate = "change.status.exchange.rate/:id"
+
+	// ManageBranch
+	ViewManageBranch = "view.manage.branch"
+
+	// Province
+	ViewProvince = "view.province"
 )

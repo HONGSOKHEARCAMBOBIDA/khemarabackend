@@ -22,6 +22,8 @@ func SetupRoutes(r *gin.Engine) {
 	currencycontroller := controller.NewCurrencyController()
 	currencypaircontroller := controller.NewCurrencyPairController()
 	exchangeratecontroller := controller.NewExchangeRateController()
+	managebranchcontroller := controller.NewManageBranchController()
+	provincecontroller := controller.NewProvinceController()
 	r.Static("/clientimage", "./public/clientimage")
 	r.POST("/login", authcontroller.Login)
 	auth := r.Group("/")
@@ -90,5 +92,11 @@ func SetupRoutes(r *gin.Engine) {
 		auth.POST(route.AddExchangeRate, middleware.PermissionMiddleware(permission.AddExchangeRate), exchangeratecontroller.CreateExchangeRate)
 		auth.PUT(route.UpdateExchangeRate, middleware.PermissionMiddleware(permission.UpdateExchangeRate), exchangeratecontroller.UpdateExchangeRate)
 		auth.PUT(route.ChangeStatusExchangeRate, middleware.PermissionMiddleware(permission.ChangeStatusExchangeRate), exchangeratecontroller.ChangeStatusExchangeRate)
+
+		// ManageBranch
+		auth.GET(route.ViewManageBranch, middleware.PermissionMiddleware(permission.ViewManageBranch), managebranchcontroller.GetManageBranch)
+
+		// Address
+		auth.GET(route.ViewProvince, middleware.PermissionMiddleware(permission.ViewProvince), provincecontroller.GetProvince)
 	}
 }
