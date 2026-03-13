@@ -24,6 +24,10 @@ func SetupRoutes(r *gin.Engine) {
 	exchangeratecontroller := controller.NewExchangeRateController()
 	managebranchcontroller := controller.NewManageBranchController()
 	provincecontroller := controller.NewProvinceController()
+	districtcontroller := controller.NewDistrictController()
+	communcecontroller := controller.NewCommunceController()
+	villagecontroller := controller.NewVillageController()
+	dayofweekcontroller := controller.NewDayOfWeekController()
 	r.Static("/clientimage", "./public/clientimage")
 	r.POST("/login", authcontroller.Login)
 	auth := r.Group("/")
@@ -98,5 +102,11 @@ func SetupRoutes(r *gin.Engine) {
 
 		// Address
 		auth.GET(route.ViewProvince, middleware.PermissionMiddleware(permission.ViewProvince), provincecontroller.GetProvince)
+		auth.GET(route.ViewDistrict, middleware.PermissionMiddleware(permission.ViewDistrict), districtcontroller.GetDistrict)
+		auth.GET(route.ViewCommunce, middleware.PermissionMiddleware(permission.ViewCommunce), communcecontroller.GetCommunce)
+		auth.GET(route.ViewVillage, middleware.PermissionMiddleware(permission.ViewVillage), villagecontroller.GetVillage)
+
+		// Dayofweek
+		auth.GET(route.ViewDayofweek, middleware.PermissionMiddleware(permission.ViewDayofweek), dayofweekcontroller.GetDayOfWeek)
 	}
 }

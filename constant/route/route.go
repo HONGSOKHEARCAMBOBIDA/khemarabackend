@@ -70,6 +70,12 @@ const (
 	// ManageBranch
 	ViewManageBranch = "view.manage.branch"
 
-	// Province
+	// Address
 	ViewProvince = "view.province"
+	ViewDistrict = "view.district/:id"
+	ViewCommunce = "view.communce"
+	ViewVillage  = "view.village"
+
+	// Dayofweek
+	ViewDayofweek = "view.day.of.week"
 )

@@ -1,4 +1,4 @@
-./create/create_module.sh Position
+./create/create_module.sh Communce
 
 {
     "username":"hear",
