@@ -73,8 +73,8 @@ const (
 	// Address
 	ViewProvince = "view.province"
 	ViewDistrict = "view.district/:id"
-	ViewCommunce = "view.communce"
-	ViewVillage  = "view.village"
+	ViewCommunce = "view.communce/:id"
+	ViewVillage  = "view.village/:id"
 
 	// Dayofweek
 	ViewDayofweek = "view.day.of.week"
