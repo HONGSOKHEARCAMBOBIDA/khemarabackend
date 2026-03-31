@@ -78,4 +78,7 @@ const (
 
 	// Dayofweek
 	ViewDayofweek = "view.day.of.week"
+
+	// Office
+	ViewOffice = "view.office"
 )

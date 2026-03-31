@@ -28,6 +28,7 @@ func SetupRoutes(r *gin.Engine) {
 	communcecontroller := controller.NewCommunceController()
 	villagecontroller := controller.NewVillageController()
 	dayofweekcontroller := controller.NewDayOfWeekController()
+	officecontroller := controller.NewOfficeController()
 	r.Static("/clientimage", "./public/clientimage")
 	r.POST("/login", authcontroller.Login)
 	auth := r.Group("/")
@@ -108,5 +109,8 @@ func SetupRoutes(r *gin.Engine) {
 
 		// Dayofweek
 		auth.GET(route.ViewDayofweek, middleware.PermissionMiddleware(permission.ViewDayofweek), dayofweekcontroller.GetDayOfWeek)
+
+		// Office
+		auth.GET(route.ViewOffice, middleware.PermissionMiddleware(permission.ViewOffice), officecontroller.GetAllOffice)
 	}
 }
