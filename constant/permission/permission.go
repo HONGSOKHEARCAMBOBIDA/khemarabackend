@@ -80,4 +80,10 @@ const (
 
 	// Office
 	ViewOffice = "view.office"
+
+	// Shift
+	ViewShift         = "view.shift"
+	AddShift          = "add.shift"
+	UpdateShift       = "update.shift"
+	ChangeStatusShift = "change.status.shift"
 )

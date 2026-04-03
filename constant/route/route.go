@@ -81,4 +81,18 @@ const (
 
 	// Office
 	ViewOffice = "view.office"
+
+	// Shift
+	ViewAllShift        = "view.all.shift"
+	ViewShfitByBranchID = "view.shift.by.branch.id/:id"
+	AddShift            = "add.shift"
+	UpdateShift         = "update.shift/:id"
+	ChangeStatusShift   = "change.status.shift/:id"
+
+	// ShiftSession
+	ViewAllShiftSession       = "view.all.shift.session"
+	ViewShiftSessionByShiftID = "view.shift.session.by.shift.id/:id"
+	AddShiftSession           = "add.shift.session"
+	UpdateShiftSession        = "update.shift.session/:id"
+	ChangeStatusShiftSession  = "change.status.shift.session/:id"
 )

@@ -29,6 +29,8 @@ func SetupRoutes(r *gin.Engine) {
 	villagecontroller := controller.NewVillageController()
 	dayofweekcontroller := controller.NewDayOfWeekController()
 	officecontroller := controller.NewOfficeController()
+	shiftcontroller := controller.NewShiftController()
+	shiftsessioncontroller := controller.NewShiftSessionController()
 	r.Static("/clientimage", "./public/clientimage")
 	r.POST("/login", authcontroller.Login)
 	auth := r.Group("/")
@@ -112,5 +114,19 @@ func SetupRoutes(r *gin.Engine) {
 
 		// Office
 		auth.GET(route.ViewOffice, middleware.PermissionMiddleware(permission.ViewOffice), officecontroller.GetAllOffice)
+
+		// Shift
+		auth.GET(route.ViewAllShift, middleware.PermissionMiddleware(permission.ViewShift), shiftcontroller.GetAllShift)
+		auth.GET(route.ViewShfitByBranchID, middleware.PermissionMiddleware(permission.ViewShift), shiftcontroller.GetByBranchID)
+		auth.POST(route.AddShift, middleware.PermissionMiddleware(permission.AddShift), shiftcontroller.CreateShift)
+		auth.PUT(route.UpdateShift, middleware.PermissionMiddleware(permission.UpdateShift), shiftcontroller.UpdateShift)
+		auth.PUT(route.ChangeStatusShift, middleware.PermissionMiddleware(permission.ChangeStatusShift), shiftcontroller.ChangeStatusShift)
+
+		// ShiftSession
+		auth.GET(route.ViewAllShiftSession, middleware.PermissionMiddleware(permission.ViewShift), shiftsessioncontroller.GetAllShiftSession)
+		auth.GET(route.ViewShiftSessionByShiftID, middleware.PermissionMiddleware(permission.ViewShift), shiftsessioncontroller.GetByShiftID)
+		auth.POST(route.AddShiftSession, middleware.PermissionMiddleware(permission.AddShift), shiftsessioncontroller.CreateShiftSession)
+		auth.PUT(route.UpdateShiftSession, middleware.PermissionMiddleware(permission.UpdateShift), shiftsessioncontroller.UpdateShiftSession)
+		auth.PUT(route.ChangeStatusShiftSession, middleware.PermissionMiddleware(permission.ChangeStatusShift), shiftsessioncontroller.ChangeStatusShiftSession)
 	}
 }
