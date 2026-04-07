@@ -95,4 +95,10 @@ const (
 	AddShiftSession           = "add.shift.session"
 	UpdateShiftSession        = "update.shift.session/:id"
 	ChangeStatusShiftSession  = "change.status.shift.session/:id"
+
+	// User
+	ViewUser         = "view.user"
+	AddUser          = "add.user"
+	UpdateUser       = "update.user/:id"
+	ChangeStatusUser = "change.status.user/:id"
 )

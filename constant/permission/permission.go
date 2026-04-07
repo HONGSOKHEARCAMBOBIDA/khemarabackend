@@ -86,4 +86,10 @@ const (
 	AddShift          = "add.shift"
 	UpdateShift       = "update.shift"
 	ChangeStatusShift = "change.status.shift"
+
+	// User
+	ViewUser         = "view.user"
+	AddUser          = "add.user"
+	UpdateUser       = "update.user"
+	ChangeStatusUser = "change.status.user"
 )

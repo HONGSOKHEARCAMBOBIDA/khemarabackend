@@ -2,6 +2,7 @@ package controller
 
 import (
 	"mysql/constant/share"
+	"mysql/helper"
 	"mysql/request"
 	"mysql/service"
 	"net/http"
@@ -19,7 +20,7 @@ func NewAuthController() AuthController {
 	}
 }
 
-func (cr AuthController) Login(c *gin.Context) {
+func (cr *AuthController) Login(c *gin.Context) {
 	var input request.AuthRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
 		share.ResponseError(c, 400, err.Error())
@@ -32,4 +33,22 @@ func (cr AuthController) Login(c *gin.Context) {
 	}
 	//share.ResponeSuccess(c, 200, result.Token)
 	share.RespondDate(c, http.StatusOK, result)
+}
+
+func (cr *AuthController) Register(c *gin.Context) {
+	var input request.RegisterRequest
+	if err := c.ShouldBind(&input); err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	id, ok := helper.GetUserID(c)
+	if !ok {
+		share.ResponseError(c, http.StatusUnauthorized, "Please Login")
+		return
+	}
+	if err := cr.service.Register(id, input, c); err != nil {
+		share.ResponseError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	share.ResponseSuccess(c, http.StatusCreated, "user create")
 }

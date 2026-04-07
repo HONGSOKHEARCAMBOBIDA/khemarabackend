@@ -2,11 +2,14 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"mysql/config"
+	"mysql/helper"
 	"mysql/model"
 	"mysql/request"
 	"mysql/response"
 	"mysql/utils"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -17,6 +20,7 @@ import (
 
 type AuthService interface {
 	Login(input request.AuthRequest, c *gin.Context) (*response.AuthResponse, error)
+	Register(id int, input request.RegisterRequest, c *gin.Context) error
 }
 
 type authservice struct {
@@ -105,4 +109,194 @@ func (s *authservice) Login(input request.AuthRequest, c *gin.Context) (*respons
 	}
 
 	return resp, nil
+}
+
+func (s *authservice) Register(id int, input request.RegisterRequest, c *gin.Context) error {
+
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+
+		}
+	}()
+
+	profilePath, err := helper.SaveImage(c, "profile_image", "public/profile")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	qrcodePath, err := helper.SaveImage(c, "qrcode_image", "public/qrcode")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	educationPath, err := helper.SaveImage(c, "education_image", "public/education")
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	employee := model.Employee{
+		NameEn:         input.NameEn,
+		NameKh:         input.NameKh,
+		NationalID:     input.NationalID,
+		Gender:         input.Gender,
+		PositionID:     input.PositionID,
+		HireDate:       input.HireDate,
+		PromoteDate:    input.PromoteDate,
+		IsPromote:      false,
+		EmployeeTypeID: input.EmployeeTypeID,
+		Isactive:       true,
+		OfficeID:       input.OfficeID,
+		CreateBy:       id,
+	}
+
+	if err := tx.Create(&employee).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	employeeprofile := model.EmployeeProfile{
+		EmployeeID:              employee.ID,
+		PositionLevelID:         input.PositionLevelID,
+		DoB:                     input.DoB,
+		VillageIdOfBirth:        input.VillageIdOfBirth,
+		MaterialStatus:          input.MaterialStatus,
+		ProfileImage:            profilePath,
+		VillageIDCurrentAddress: input.VillageIDCurrentAddress,
+		FamilyPhone:             input.FamilyPhone,
+		BankName:                input.BankName,
+		BankAccountNumber:       input.BankAccountNumber,
+		QrCodeBankAccount:       qrcodePath,
+		Note:                    "",
+		ReportoID:               input.ReportoID,
+		WifeName:                input.WifeName,
+		HusBanName:              input.HusBanName,
+		SonNumber:               input.SonNumber,
+		DaughterNumber:          input.DaughterNumber,
+		CreateBy:                id,
+	}
+
+	if err := tx.Create(&employeeprofile).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	employeeeducation := model.EmployeeEducation{
+		EmployeeID:       employee.ID,
+		EducationLevelID: input.EducationLevelID,
+		MajorField:       input.MajorField,
+		StartDate:        input.StartDate,
+		EndDate:          input.EndDate,
+		Note:             "",
+		Image:            educationPath,
+		CreateBy:         id,
+	}
+
+	if err := tx.Create(&employeeeducation).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	employeeworkexperience := model.EmployeeWorkExperience{
+		EmployeeID:     employee.ID,
+		CompanyName:    input.CompanyName,
+		PositionTitle:  input.PositionTitle,
+		StartDate:      input.StartDateEducation,
+		EndDate:        input.EndDateEducation,
+		JobDescription: input.JobDescription,
+		CreateBy:       id,
+	}
+
+	if err := tx.Create(&employeeworkexperience).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	salary := model.Salary{
+		EmployeeID:    employee.ID,
+		BaseSalary:    input.BaseSalary,
+		WorkDay:       input.WorkDay,
+		DailyRate:     input.DailyRate,
+		EffectiveDate: time.Now(),
+		ExpireDate:    time.Now(),
+		CurrencyID:    input.CurrencyID,
+		Isactive:      true,
+	}
+
+	if err := tx.Create(&salary).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	username := strings.ToLower(input.NameEn)
+	email := fmt.Sprintf("%s168@gmail.com", username)
+	password := utils.HasPassword("123456")
+	user := model.User{
+		UserName:     username,
+		Email:        email,
+		Password:     password,
+		Contact:      input.Contact,
+		BranchID:     input.BranchID,
+		RoleID:       input.RoleID,
+		EmployeeID:   employee.ID,
+		Isactive:     true,
+		ManageBranch: input.ManageBranch,
+	}
+
+	if err := tx.Create(&user).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if len(input.PartIDs) > 0 {
+		for _, part := range input.PartIDs {
+			if err := tx.Create(&model.UserPart{
+				UserID: int(user.ID),
+				PartID: uint(part),
+			}).Error; err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
+	if len(input.BranchIDs) > 0 {
+		for _, branch := range input.BranchIDs {
+			if err := tx.Create(&model.UserBranch{
+				UserID:   uint(user.ID),
+				BranchID: uint(branch),
+			}).Error; err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
+	if len(input.Dayofweeks) > 0 && len(input.Dayofweeks) == len(input.Isdayoff) {
+		for i, day := range input.Dayofweeks {
+			shift := model.ShiftPattern{
+				EmployeeID:  employee.ID,
+				DayOfWeekID: day,
+				ShiftID:     input.ShiftID,
+				Isdayoff:    input.Isdayoff[i],
+			}
+
+			if err := tx.Create(&shift).Error; err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	} else {
+		return errors.New("DayOfWeeks and IsDayOff must be same length")
+	}
+
+	return tx.Commit().Error
+
 }
