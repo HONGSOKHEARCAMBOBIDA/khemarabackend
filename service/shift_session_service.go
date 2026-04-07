@@ -133,7 +133,9 @@ func (s *shiftsessionservice) UpdateShiftSession(id int, input request.ShiftSess
 			return err
 		}
 		updates["shift_id"] = *input.ShiftID
-		updates["shift_order"] = lastSession.ShiftOrder + 1
+		if lastSession.ShiftID != id {
+			updates["shift_order"] = lastSession.ShiftOrder + 1
+		}
 
 	}
 	if input.StartTime != nil {
