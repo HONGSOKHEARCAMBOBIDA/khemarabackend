@@ -9,6 +9,6 @@ type User struct {
 	BranchID     int    `json:"branch_id"`
 	RoleID       int    `json:"role_id"`
 	EmployeeID   int    `json:"employee_id"`
-	Isactive     bool   `json:"is_active"`
+	Isactive     bool   `json:"is_active" gorm:"column:is_active"`
 	ManageBranch int    `json:"manage_branch"`
 }

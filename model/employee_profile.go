@@ -4,7 +4,7 @@ type EmployeeProfile struct {
 	ID                      int    `json:"id"`
 	EmployeeID              int    `json:"employee_id"`
 	PositionLevelID         int    `json:"position_level_id"`
-	DoB                     string `json:"dob"`
+	DoB                     string `json:"dob" gorm:"column:dob"`
 	VillageIdOfBirth        int    `json:"village_id_of_birth"`
 	MaterialStatus          string `json:"material_status"`
 	ProfileImage            string `json:"profile_image"`
@@ -14,9 +14,9 @@ type EmployeeProfile struct {
 	BankAccountNumber       string `json:"bank_account_number"`
 	QrCodeBankAccount       string `json:"qr_code_bank_account"`
 	Note                    string `json:"note"`
-	ReportoID               int    `json:"report_to"`
+	ReportoID               int    `json:"report_to" gorm:"column:report_to"`
 	WifeName                string `json:"wife_name"`
-	HusBanName              string `json:"husban_name"`
+	HusBanName              string `json:"husban_name" gorm:"column:husban_name"`
 	SonNumber               int    `json:"son_number"`
 	DaughterNumber          int    `json:"daughter_number"`
 	CreateBy                int    `json:"create_by"`

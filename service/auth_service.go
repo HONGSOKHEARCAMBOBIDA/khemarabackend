@@ -112,35 +112,37 @@ func (s *authservice) Login(input request.AuthRequest, c *gin.Context) (*respons
 }
 
 func (s *authservice) Register(id int, input request.RegisterRequest, c *gin.Context) error {
-
+	var uploadedFiles []string
 	tx := s.db.Begin()
 	if tx.Error != nil {
 		return tx.Error
 	}
 	defer func() {
 		if r := recover(); r != nil {
-			tx.Rollback()
 
+			tx.Rollback()
+			helper.DeleteFiles(uploadedFiles)
 		}
 	}()
 
-	profilePath, err := helper.SaveImage(c, "profile_image", "public/profile")
+	profilePath, err := helper.SaveImage(c, "profile_image", "public/profileimage")
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-
-	qrcodePath, err := helper.SaveImage(c, "qrcode_image", "public/qrcode")
+	uploadedFiles = append(uploadedFiles, profilePath)
+	qrcodePath, err := helper.SaveImage(c, "qr_code_bank_account", "public/qrcodeimage")
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-
-	educationPath, err := helper.SaveImage(c, "education_image", "public/education")
+	uploadedFiles = append(uploadedFiles, qrcodePath)
+	educationPaths, err := helper.SaveImages(c, "education_image", "public/educationimage")
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
+	uploadedFiles = append(uploadedFiles, educationPaths...)
 
 	employee := model.Employee{
 		NameEn:         input.NameEn,
@@ -159,6 +161,7 @@ func (s *authservice) Register(id int, input request.RegisterRequest, c *gin.Con
 
 	if err := tx.Create(&employee).Error; err != nil {
 		tx.Rollback()
+		helper.DeleteFiles(uploadedFiles)
 		return err
 	}
 
@@ -185,38 +188,83 @@ func (s *authservice) Register(id int, input request.RegisterRequest, c *gin.Con
 
 	if err := tx.Create(&employeeprofile).Error; err != nil {
 		tx.Rollback()
+		helper.DeleteFiles(uploadedFiles)
 		return err
 	}
 
-	employeeeducation := model.EmployeeEducation{
-		EmployeeID:       employee.ID,
-		EducationLevelID: input.EducationLevelID,
-		MajorField:       input.MajorField,
-		StartDate:        input.StartDate,
-		EndDate:          input.EndDate,
-		Note:             "",
-		Image:            educationPath,
-		CreateBy:         id,
+	count := len(input.EducationLevelID)
+
+	for i := 0; i < count; i++ {
+		var imagePath string
+		if i < len(educationPaths) {
+			imagePath = educationPaths[i]
+		}
+
+		var majorField string
+		if i < len(input.MajorField) {
+			majorField = input.MajorField[i]
+		}
+
+		var startDate string
+		if i < len(input.StartDateEducation) {
+			startDate = input.StartDateEducation[i]
+		}
+
+		var endDate string
+		if i < len(input.EndDateEducation) {
+			endDate = input.EndDateEducation[i]
+		}
+
+		var note string
+		if i < len(input.NoteEducation) {
+			note = input.NoteEducation[i]
+		}
+
+		employeeEducation := model.EmployeeEducation{
+			EmployeeID:       employee.ID,
+			EducationLevelID: input.EducationLevelID[i],
+			MajorField:       majorField,
+			StartDate:        startDate,
+			EndDate:          endDate,
+			Note:             note,
+			Image:            imagePath,
+			CreateBy:         id,
+		}
+
+		if err := tx.Create(&employeeEducation).Error; err != nil {
+			tx.Rollback()
+			helper.DeleteFiles(uploadedFiles)
+			return err
+		}
 	}
 
-	if err := tx.Create(&employeeeducation).Error; err != nil {
+	if len(input.CompanyName) > 0 &&
+		len(input.CompanyName) == len(input.PositionTitle) &&
+		len(input.CompanyName) == len(input.StartDate) &&
+		len(input.CompanyName) == len(input.EndDate) &&
+		len(input.CompanyName) == len(input.JobDescription) {
+
+		for i, cpn := range input.CompanyName {
+			employeeworkexperience := model.EmployeeWorkExperience{
+				EmployeeID:     employee.ID,
+				CompanyName:    cpn,
+				PositionTitle:  input.PositionTitle[i],
+				StartDate:      input.StartDate[i],
+				EndDate:        input.EndDate[i],
+				JobDescription: input.JobDescription[i],
+				CreateBy:       id,
+			}
+
+			if err := tx.Create(&employeeworkexperience).Error; err != nil {
+				tx.Rollback()
+				helper.DeleteFiles(uploadedFiles)
+				return err
+			}
+		}
+	} else {
 		tx.Rollback()
-		return err
-	}
-
-	employeeworkexperience := model.EmployeeWorkExperience{
-		EmployeeID:     employee.ID,
-		CompanyName:    input.CompanyName,
-		PositionTitle:  input.PositionTitle,
-		StartDate:      input.StartDateEducation,
-		EndDate:        input.EndDateEducation,
-		JobDescription: input.JobDescription,
-		CreateBy:       id,
-	}
-
-	if err := tx.Create(&employeeworkexperience).Error; err != nil {
-		tx.Rollback()
-		return err
+		helper.DeleteFiles(uploadedFiles)
+		return errors.New("work experience data not match")
 	}
 
 	salary := model.Salary{
@@ -225,13 +273,14 @@ func (s *authservice) Register(id int, input request.RegisterRequest, c *gin.Con
 		WorkDay:       input.WorkDay,
 		DailyRate:     input.DailyRate,
 		EffectiveDate: time.Now(),
-		ExpireDate:    time.Now(),
+		ExpireDate:    nil,
 		CurrencyID:    input.CurrencyID,
 		Isactive:      true,
 	}
 
 	if err := tx.Create(&salary).Error; err != nil {
 		tx.Rollback()
+		helper.DeleteFiles(uploadedFiles)
 		return err
 	}
 
@@ -252,6 +301,7 @@ func (s *authservice) Register(id int, input request.RegisterRequest, c *gin.Con
 
 	if err := tx.Create(&user).Error; err != nil {
 		tx.Rollback()
+		helper.DeleteFiles(uploadedFiles)
 		return err
 	}
 
@@ -262,6 +312,7 @@ func (s *authservice) Register(id int, input request.RegisterRequest, c *gin.Con
 				PartID: uint(part),
 			}).Error; err != nil {
 				tx.Rollback()
+				helper.DeleteFiles(uploadedFiles)
 				return err
 			}
 		}
@@ -274,6 +325,7 @@ func (s *authservice) Register(id int, input request.RegisterRequest, c *gin.Con
 				BranchID: uint(branch),
 			}).Error; err != nil {
 				tx.Rollback()
+				helper.DeleteFiles(uploadedFiles)
 				return err
 			}
 		}
@@ -290,6 +342,7 @@ func (s *authservice) Register(id int, input request.RegisterRequest, c *gin.Con
 
 			if err := tx.Create(&shift).Error; err != nil {
 				tx.Rollback()
+				helper.DeleteFiles(uploadedFiles)
 				return err
 			}
 		}
@@ -297,6 +350,10 @@ func (s *authservice) Register(id int, input request.RegisterRequest, c *gin.Con
 		return errors.New("DayOfWeeks and IsDayOff must be same length")
 	}
 
-	return tx.Commit().Error
+	if err := tx.Commit().Error; err != nil {
+		helper.DeleteFiles(uploadedFiles)
+		return err
+	}
+	return nil
 
 }

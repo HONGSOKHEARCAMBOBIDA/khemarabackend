@@ -4,7 +4,7 @@ type EmployeeEducation struct {
 	ID               int    `json:"id"`
 	EmployeeID       int    `json:"employee_id"`
 	EducationLevelID int    `json:"education_level_id"`
-	MajorField       string `json:"major_field_of_study"`
+	MajorField       string `json:"major_field_of_study" gorm:"column:major_field_of_study"`
 	StartDate        string `json:"start_date"`
 	EndDate          string `json:"end_date"`
 	Note             string `json:"note"`
