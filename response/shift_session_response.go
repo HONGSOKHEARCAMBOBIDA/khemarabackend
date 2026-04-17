@@ -10,5 +10,5 @@ type ShiftSessionResponse struct {
 	ShiftOrder  int    `json:"shift_order"`
 	StartTime   string `json:"start_time"`
 	EndTime     string `json:"end_time"`
-	Isactive    bool   `json:"is_active"`
+	Isactive    bool   `json:"is_active" gorm:"column:is_active"`
 }

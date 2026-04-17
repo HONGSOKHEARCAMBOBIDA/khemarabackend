@@ -41,7 +41,7 @@ func (s *shiftsessionservice) GetAllShiftSession() ([]response.ShiftSessionRespo
 	s.id AS shift_id,
 	s.name AS shift_name,
 	b.id AS branch_id,
-	b.name AS branch_name
+	b.  name AS branch_name
 	`).
 		Joins("LEFT JOIN shifts s ON s.id = ss.shift_id").
 		Joins("LEFT JOIN branches b ON b.id = s.branch_id")

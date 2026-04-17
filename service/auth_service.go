@@ -119,7 +119,6 @@ func (s *authservice) Register(id int, input request.RegisterRequest, c *gin.Con
 	}
 	defer func() {
 		if r := recover(); r != nil {
-
 			tx.Rollback()
 			helper.DeleteFiles(uploadedFiles)
 		}
@@ -130,18 +129,21 @@ func (s *authservice) Register(id int, input request.RegisterRequest, c *gin.Con
 		tx.Rollback()
 		return err
 	}
+
 	uploadedFiles = append(uploadedFiles, profilePath)
 	qrcodePath, err := helper.SaveImage(c, "qr_code_bank_account", "public/qrcodeimage")
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
+
 	uploadedFiles = append(uploadedFiles, qrcodePath)
 	educationPaths, err := helper.SaveImages(c, "education_image", "public/educationimage")
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
+
 	uploadedFiles = append(uploadedFiles, educationPaths...)
 
 	employee := model.Employee{
