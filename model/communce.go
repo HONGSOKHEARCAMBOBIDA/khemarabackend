@@ -1,7 +1,7 @@
 package model
 
 type Communce struct {
-	ID         uint   `json:"id"`
+	ID         int    `json:"id"`
 	Name       string `json:"name"`
-	DistrictID uint   `json:"district_id"`
+	DistrictID int    `json:"district_id"`
 }

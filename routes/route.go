@@ -31,6 +31,7 @@ func SetupRoutes(r *gin.Engine) {
 	officecontroller := controller.NewOfficeController()
 	shiftcontroller := controller.NewShiftController()
 	shiftsessioncontroller := controller.NewShiftSessionController()
+	partcontroller := controller.NewPartController()
 	r.Static("/clientimage", "./public/clientimage")
 	r.POST("/login", authcontroller.Login)
 	auth := r.Group("/")
@@ -131,5 +132,9 @@ func SetupRoutes(r *gin.Engine) {
 
 		// User
 		auth.POST(route.AddUser, middleware.PermissionMiddleware(permission.AddUser), authcontroller.Register)
+		auth.GET(route.ViewUserByBranch, middleware.PermissionMiddleware(permission.ViewUser), authcontroller.GetUserByBranch)
+
+		// Part
+		auth.GET(route.ViewPart, middleware.PermissionMiddleware(permission.ViewPart), partcontroller.GetPart)
 	}
 }

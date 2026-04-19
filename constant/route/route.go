@@ -97,8 +97,11 @@ const (
 	ChangeStatusShiftSession  = "change.status.shift.session/:id"
 
 	// User
-	ViewUser         = "view.user"
+	ViewUserByBranch = "view.user.by.branch/:id"
 	AddUser          = "add.user"
 	UpdateUser       = "update.user/:id"
 	ChangeStatusUser = "change.status.user/:id"
+
+	// Part
+	ViewPart = "view.part"
 )

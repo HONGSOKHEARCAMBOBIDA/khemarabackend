@@ -6,6 +6,7 @@ import (
 	"mysql/request"
 	"mysql/service"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -51,4 +52,19 @@ func (cr *AuthController) Register(c *gin.Context) {
 		return
 	}
 	share.ResponseSuccess(c, http.StatusCreated, "user create")
+}
+
+func (cr *AuthController) GetUserByBranch(c *gin.Context) {
+	idparam := c.Param("id")
+	id, err := strconv.Atoi(idparam)
+	if err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	data, err := cr.service.GetUserByBranch(id)
+	if err != nil {
+		share.ResponseError(c, http.StatusNoContent, err.Error())
+		return
+	}
+	share.RespondDate(c, http.StatusOK, data)
 }

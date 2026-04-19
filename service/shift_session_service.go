@@ -68,7 +68,7 @@ func (s *shiftsessionservice) GetByShiftID(id int) ([]response.ShiftSessionRespo
 	`).
 		Joins("LEFT JOIN shifts s ON s.id = ss.shift_id").
 		Joins("LEFT JOIN branches b ON b.id = s.branch_id")
-	if err := db.Order("ss.id DESC").Where("s.id = ?", id).Scan(&shiftsessions).Error; err != nil {
+	if err := db.Where("s.id = ?", id).Scan(&shiftsessions).Error; err != nil {
 		return nil, err
 	}
 	return shiftsessions, nil

@@ -21,6 +21,7 @@ import (
 type AuthService interface {
 	Login(input request.AuthRequest, c *gin.Context) (*response.AuthResponse, error)
 	Register(id int, input request.RegisterRequest, c *gin.Context) error
+	GetUserByBranch(id int) ([]response.UserResponse, error)
 }
 
 type authservice struct {
@@ -31,6 +32,20 @@ func NewAuthService() AuthService {
 	return &authservice{
 		db: config.DB,
 	}
+}
+
+func (s *authservice) GetUserByBranch(id int) ([]response.UserResponse, error) {
+	var user []response.UserResponse
+	db := s.db.Table("users u").
+		Select(`
+		u.id AS id,
+		e.name_kh AS name
+	`).
+		Joins("LEFT JOIN employees e ON e.id = u.employee_id").Where("u.branch_id = ?", id)
+	if err := db.Order("u.id DESC").Scan(&user).Error; err != nil {
+		return nil, err
+	}
+	return user, nil
 }
 
 func (s *authservice) Login(input request.AuthRequest, c *gin.Context) (*response.AuthResponse, error) {
