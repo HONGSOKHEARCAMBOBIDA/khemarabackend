@@ -104,4 +104,8 @@ const (
 
 	// Part
 	ViewPart = "view.part"
+
+	// Employee
+	ViewEmployee = "view.employee"
+	EditEmployee = "edit.employee:/id"
 )
