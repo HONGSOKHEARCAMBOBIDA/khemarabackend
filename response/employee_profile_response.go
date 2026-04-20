@@ -16,7 +16,7 @@ type EmployeeProfileResponse struct {
 	ProfileImage        string `json:"profile_image"`
 	ProvinceIDCurrent   int    `json:"province_id_current"`
 	ProvinceNameCurrent string `json:"province_name_current"`
-	DistrictIDCurrent   int    `json:"distirct_id_current"`
+	DistrictIDCurrent   int    `json:"distirct_id_current" gorm:"column:distirct_id_current"`
 	DistrictNameCurrent string `json:"district_name_current"`
 	CommunceIDCurrent   int    `json:"communce_id_current"`
 	CommunceNameCurrent string `json:"communce_name_current"`

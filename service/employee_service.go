@@ -2,6 +2,7 @@ package service
 
 import (
 	"mysql/config"
+	"mysql/helper"
 	"mysql/model"
 	"mysql/request"
 	"mysql/response"
@@ -28,6 +29,10 @@ func (s *employeeservice) GetEmployee(filters map[string]string, pagination requ
 	var totalCount int64
 
 	offset := (pagination.Page - 1) * pagination.PageSize
+
+	// pagination.Page is current page number
+	// pagination.PageSize is number record per page
+	// formula calculates how many records to skip before fetching data
 
 	query := s.db.Table("users u").
 		Select(`
@@ -109,7 +114,7 @@ func (s *employeeservice) GetEmployee(filters map[string]string, pagination requ
 				e.national_id_number AS national_id_number,
 				e.gender AS gender,
 				e.position_id AS position_id,
-				p.name AS position_name,
+				p.display_name AS position_name,
 				e.hire_date AS hire_date,
 				e.promote_date AS promote_date,
 				e.is_promote AS is_promote,
@@ -129,6 +134,10 @@ func (s *employeeservice) GetEmployee(filters map[string]string, pagination requ
 			Where("e.id = (SELECT employee_id FROM users WHERE id = ?)", employees[i].UserID).
 			Scan(&employeeDetails).Error; err != nil {
 			return nil, nil, err
+		}
+		for i := range employeeDetails {
+			employeeDetails[i].HireDate = helper.FormatDate(employeeDetails[i].HireDate)
+			employeeDetails[i].PromoteDate = helper.FormatDate(employeeDetails[i].PromoteDate)
 		}
 		employees[i].EmployeeRespons = employeeDetails
 
@@ -157,6 +166,10 @@ func (s *employeeservice) GetEmployee(filters map[string]string, pagination requ
 				Scan(&educations).Error; err != nil {
 				return nil, nil, err
 			}
+			for i := range educations {
+				educations[i].StartDate = helper.FormatDate(educations[i].StartDate)
+				educations[i].EndDate = helper.FormatDate(educations[i].EndDate)
+			}
 			employees[i].EmployeeEducations = educations
 
 			// Get employee profile
@@ -165,7 +178,7 @@ func (s *employeeservice) GetEmployee(filters map[string]string, pagination requ
 				Select(`
 					ep.id AS id,
 					ep.position_level_id AS position_level_id,
-					pl.name AS position_level_name,
+					pl.display_name AS position_level_name,
 					ep.dob AS dob,
 					pb.id AS province_id_birth,
 					pb.name AS province_name_birth,
@@ -190,7 +203,7 @@ func (s *employeeservice) GetEmployee(filters map[string]string, pagination requ
 					ep.qr_code_bank_account AS qr_code_bank_account,
 					ep.note AS note,
 					ep.report_to AS report_to,
-					ru.username AS report_to_name,
+					ru.name_kh AS report_to_name,
 					ep.wife_name AS wife_name,
 					ep.husban_name AS husban_name,
 					ep.son_number AS son_number,
@@ -205,10 +218,13 @@ func (s *employeeservice) GetEmployee(filters map[string]string, pagination requ
 				Joins("LEFT JOIN communces cc ON cc.id = vc.communce_id").
 				Joins("LEFT JOIN districts dc ON dc.id = cc.district_id").
 				Joins("LEFT JOIN provinces pc ON pc.id = dc.province_id").
-				Joins("LEFT JOIN users ru ON ru.id = ep.report_to").
+				Joins("LEFT JOIN employees ru ON ru.id = ep.report_to").
 				Where("ep.employee_id = ?", employeeID).
 				Scan(&profiles).Error; err != nil {
 				return nil, nil, err
+			}
+			for i := range profiles {
+				profiles[i].DoB = helper.FormatDate(profiles[i].DoB)
 			}
 			employees[i].EmployeeProfies = profiles
 
@@ -226,6 +242,10 @@ func (s *employeeservice) GetEmployee(filters map[string]string, pagination requ
 				Where("ewe.employee_id = ?", employeeID).
 				Scan(&workExperiences).Error; err != nil {
 				return nil, nil, err
+			}
+			for i := range workExperiences {
+				workExperiences[i].StartDate = helper.FormatDate(workExperiences[i].StartDate)
+				workExperiences[i].EndDate = helper.FormatDate(workExperiences[i].EndDate)
 			}
 			employees[i].EmployeeWorkExperiences = workExperiences
 
@@ -249,6 +269,10 @@ func (s *employeeservice) GetEmployee(filters map[string]string, pagination requ
 				Where("s.employee_id = ?", employeeID).
 				Scan(&salaries).Error; err != nil {
 				return nil, nil, err
+			}
+			for i := range salaries {
+				salaries[i].EffectiveDate = helper.FormatDate(salaries[i].EffectiveDate)
+				salaries[i].ExpireDate = helper.FormatDate(salaries[i].ExpireDate)
 			}
 			employees[i].Salarys = salaries
 

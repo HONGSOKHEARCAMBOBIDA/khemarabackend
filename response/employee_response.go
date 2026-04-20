@@ -35,7 +35,7 @@ type EmployeeRespons struct {
 	IsPromote          bool   `json:"is_promote"`
 	EmployeeTypeID     int    `json:"employee_type_id"`
 	EmployeeTypeName   string `json:"employee_type_name"`
-	Isactive           bool   `json:"is_active"`
+	Isactive           bool   `json:"is_active" gorm:"column:is_active"`
 	OfficeID           int    `json:"office_id"`
 	OffinceName        string `json:"office_name" gorm:"column:office_name"`
 	OffinceDisplayName string `json:"office_display_name" gorm:"column:office_display_name"`
