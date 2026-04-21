@@ -207,7 +207,8 @@ func (s *employeeservice) GetEmployee(filters map[string]string, pagination requ
 					ep.wife_name AS wife_name,
 					ep.husban_name AS husban_name,
 					ep.son_number AS son_number,
-					ep.daughter_number AS daughter_number
+					ep.daughter_number AS daughter_number,
+					ep.material_status AS material_status
 				`).
 				Joins("LEFT JOIN position_levels pl ON pl.id = ep.position_level_id").
 				Joins("LEFT JOIN villages vb ON vb.id = ep.village_id_of_birth").

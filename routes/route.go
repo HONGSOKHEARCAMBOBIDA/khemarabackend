@@ -35,6 +35,7 @@ func SetupRoutes(r *gin.Engine) {
 	employeecontroller := controller.NewEmployeeController()
 	r.Static("/profileimage", "./public/profileimage")
 	r.Static("/qrcodeimage", "./public/qrcodeimage")
+	r.Static("/educationimage", "./public/educationimage")
 	r.POST("/login", authcontroller.Login)
 	auth := r.Group("/")
 	auth.Use(middleware.AuthMiddleware())

@@ -5,6 +5,7 @@ type EmployeeProfileResponse struct {
 	PositionLevelID     int    `json:"position_level_id"`
 	PositionLevelName   string `json:"position_level_name"`
 	DoB                 string `json:"dob" gorm:"column:dob"`
+	MaterialStatus      string `json:"material_status" gorm:"column:material_status"`
 	ProvinceIDBirth     string `json:"province_id_birth"`
 	ProvinceNameBirth   string `json:"province_name_birth"`
 	DistrictIDBirth     int    `json:"district_id_birth"`
