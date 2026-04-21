@@ -127,11 +127,13 @@ func (s *authservice) Login(input request.AuthRequest, c *gin.Context) (*respons
 }
 
 func (s *authservice) Register(id int, input request.RegisterRequest, c *gin.Context) error {
+
 	var uploadedFiles []string
 	tx := s.db.Begin()
 	if tx.Error != nil {
 		return tx.Error
 	}
+
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
@@ -255,20 +257,37 @@ func (s *authservice) Register(id int, input request.RegisterRequest, c *gin.Con
 		}
 	}
 
-	if len(input.CompanyName) > 0 &&
-		len(input.CompanyName) == len(input.PositionTitle) &&
-		len(input.CompanyName) == len(input.StartDate) &&
-		len(input.CompanyName) == len(input.EndDate) &&
-		len(input.CompanyName) == len(input.JobDescription) {
+	if len(input.CompanyName) > 0 {
 
-		for i, cpn := range input.CompanyName {
+		for i := 0; i < len(input.CompanyName); i++ {
+
+			var positiontitl string
+			if i < len(input.PositionTitle) {
+				positiontitl = input.PositionTitle[i]
+			}
+
+			var StartDate string
+			if i < len(input.StartDate) {
+				StartDate = input.StartDate[i]
+			}
+
+			var EndDate string
+			if i < len(input.EndDate) {
+				EndDate = input.EndDate[i]
+			}
+
+			var Jd string
+			if i < len(input.JobDescription) {
+				Jd = input.JobDescription[i]
+			}
+
 			employeeworkexperience := model.EmployeeWorkExperience{
 				EmployeeID:     employee.ID,
-				CompanyName:    cpn,
-				PositionTitle:  input.PositionTitle[i],
-				StartDate:      input.StartDate[i],
-				EndDate:        input.EndDate[i],
-				JobDescription: input.JobDescription[i],
+				CompanyName:    input.CompanyName[i],
+				PositionTitle:  positiontitl,
+				StartDate:      StartDate,
+				EndDate:        EndDate,
+				JobDescription: Jd,
 				CreateBy:       id,
 			}
 
@@ -278,10 +297,6 @@ func (s *authservice) Register(id int, input request.RegisterRequest, c *gin.Con
 				return err
 			}
 		}
-	} else {
-		tx.Rollback()
-		helper.DeleteFiles(uploadedFiles)
-		return errors.New("work experience data not match")
 	}
 
 	salary := model.Salary{
