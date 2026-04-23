@@ -50,19 +50,25 @@ func (s *employeeservice) GetEmployee(filters map[string]string, pagination requ
 		`).
 		Joins("LEFT JOIN branches b ON b.id = u.branch_id").
 		Joins("LEFT JOIN roles r ON r.id = u.role_id").
-		Joins("LEFT JOIN manage_branches mb ON mb.id = u.manage_branch")
+		Joins("LEFT JOIN manage_branches mb ON mb.id = u.manage_branch").
+		Joins("LEFT JOIN employees e ON e.id = u.employee_id").
+		Joins("LEFT JOIN positions p ON p.id = e.position_id")
 
 	for key, value := range filters {
 		if value != "" {
 			switch key {
-			case "username":
-				query = query.Where("u.username LIKE ?", "%"+value+"%")
 			case "branch_id":
-				query = query.Where("b.id = ?", value)
-			case "role_id":
-				query = query.Where("r.id = ?", value)
-			case "is_active":
-				query = query.Where("u.is_active = ?", value)
+				query = query.Where("u.branch_id = ?", value)
+			case "name":
+				query = query.Where("e.name_kh LIKE ? OR e.name_en LIKE ?", "%"+value+"%", "%"+value+"%")
+			case "position_id":
+				query = query.Where("e.position_id = ?", value)
+			case "is_promote":
+				query = query.Where("e.is_promote = ?", value)
+			case "office_id":
+				query = query.Where("e.office_id = ?", value)
+			case "department_id":
+				query = query.Where("p.department_id = ?", value)
 			}
 		}
 	}

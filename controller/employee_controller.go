@@ -30,10 +30,8 @@ func (cr *EmployeeController) GetEmployee(c *gin.Context) {
 		pageSize = 10
 	}
 	filter := map[string]string{
-		"username":  c.Query("username"),
+		"name":      c.Query("name"),
 		"branch_id": c.Query("branch_id"),
-		"role_id":   c.Query("role_id"),
-		"is_active": c.Query("is_active"),
 	}
 	employee, metadata, err := cr.service.GetEmployee(filter, request.Pagination{
 		Page:     page,
