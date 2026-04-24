@@ -107,5 +107,5 @@ const (
 
 	// Employee
 	ViewEmployee = "view.employee"
-	EditEmployee = "edit.employee:/id"
+	EditEmployee = "edit.employee/:id"
 )

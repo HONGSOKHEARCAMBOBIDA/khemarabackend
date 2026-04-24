@@ -142,5 +142,6 @@ func SetupRoutes(r *gin.Engine) {
 
 		// Employee
 		auth.GET(route.ViewEmployee, middleware.PermissionMiddleware(permission.ViewEmployee), employeecontroller.GetEmployee)
+		auth.PUT(route.EditEmployee, middleware.PermissionMiddleware(permission.EditEmployee), employeecontroller.UpdateEmployee)
 	}
 }

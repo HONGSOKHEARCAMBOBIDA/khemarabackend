@@ -28,6 +28,8 @@ type EmployeeRespons struct {
 	NameKh             string `json:"name_kh"`
 	NationalIDNumber   string `json:"national_id_number"`
 	Gender             int    `json:"gender"`
+	DepartmentID       int    `json:"department_id"`
+	DepartmentName     string `json:"department_name"`
 	PositionID         int    `json:"position_id"`
 	PositionName       string `json:"position_name"`
 	HireDate           string `json:"hire_date"`

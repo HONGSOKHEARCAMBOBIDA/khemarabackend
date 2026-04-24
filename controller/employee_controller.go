@@ -2,6 +2,7 @@ package controller
 
 import (
 	"mysql/constant/share"
+	"mysql/helper"
 	"mysql/request"
 	"mysql/service"
 	"net/http"
@@ -50,4 +51,28 @@ func (cr *EmployeeController) GetEmployee(c *gin.Context) {
 		"data":       employee,
 		"pagination": metadata,
 	})
+}
+
+func (cr *EmployeeController) UpdateEmployee(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := strconv.Atoi(idParam)
+	userID, ok := helper.GetUserID(c)
+	if !ok {
+		share.ResponseError(c, http.StatusUnauthorized, "please login")
+		return
+	}
+	if err != nil {
+		share.ResponseError(c, http.StatusBadRequest, "Invalid ID")
+		return
+	}
+	var input request.EmployeeEmpoyeeProfileRequestUpdate
+	if err := c.ShouldBind(&input); err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := cr.service.UpdateEmployee(id, input, c, userID); err != nil {
+		share.ResponseError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	share.ResponseSuccess(c, http.StatusOK, "update success")
 }

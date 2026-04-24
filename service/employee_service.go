@@ -1,17 +1,22 @@
 package service
 
 import (
+	"errors"
+	"fmt"
 	"mysql/config"
 	"mysql/helper"
 	"mysql/model"
 	"mysql/request"
 	"mysql/response"
+	"os"
 
+	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
 type EmployeeService interface {
 	GetEmployee(filters map[string]string, pagination request.Pagination) ([]response.EmployeeResponseDetail, *model.PaginationMetadata, error)
+	UpdateEmployee(id int, input request.EmployeeEmpoyeeProfileRequestUpdate, c *gin.Context, userID int) error
 }
 
 type employeeservice struct {
@@ -120,6 +125,8 @@ func (s *employeeservice) GetEmployee(filters map[string]string, pagination requ
 				e.national_id_number AS national_id_number,
 				e.gender AS gender,
 				e.position_id AS position_id,
+				d.id AS department_id,
+				d.display_name AS department_name,
 				p.display_name AS position_name,
 				e.hire_date AS hire_date,
 				e.promote_date AS promote_date,
@@ -134,6 +141,7 @@ func (s *employeeservice) GetEmployee(filters map[string]string, pagination requ
 				cu.username AS create_by_name
 			`).
 			Joins("LEFT JOIN positions p ON p.id = e.position_id").
+			Joins("LEFT JOIN departments d ON d.id = p.department_id").
 			Joins("LEFT JOIN employee_types et ON et.id = e.employee_type_id").
 			Joins("LEFT JOIN offices o ON o.id = e.office_id").
 			Joins("LEFT JOIN users cu ON cu.id = e.create_by").
@@ -350,4 +358,117 @@ func (s *employeeservice) GetEmployee(filters map[string]string, pagination requ
 	}
 
 	return employees, paginationMeta, nil
+}
+
+func (s *employeeservice) UpdateEmployee(id int, input request.EmployeeEmpoyeeProfileRequestUpdate, c *gin.Context, userID int) error {
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	var employee model.Employee
+	if err := tx.First(&employee, id).Error; err != nil {
+		tx.Rollback()
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return fmt.Errorf("employee not found")
+		}
+		return err
+	}
+
+	var employeeprofile model.EmployeeProfile
+	if err := tx.Where("employee_id = ?", id).First(&employeeprofile).Error; err != nil {
+		tx.Rollback()
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return fmt.Errorf("employee profile not found")
+		}
+		return err
+	}
+
+	profilePath, err := helper.SaveImage(c, "profile_image", "public/profileimage")
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to save profile image: %w", err)
+	}
+
+	qrcodePath, err := helper.SaveImage(c, "qr_code_bank_account", "public/qrcodeimage")
+	if err != nil {
+		if profilePath != "" {
+			os.Remove(profilePath)
+		}
+		tx.Rollback()
+		return fmt.Errorf("failed to save qr code image: %w", err)
+	}
+
+	if employeeprofile.ProfileImage != "" {
+		if err := os.Remove(employeeprofile.ProfileImage); err != nil && !os.IsNotExist(err) {
+			os.Remove(profilePath)
+			os.Remove(qrcodePath)
+			tx.Rollback()
+			return fmt.Errorf("failed to delete old profile image: %w", err)
+		}
+	}
+
+	if employeeprofile.QrCodeBankAccount != "" {
+		if err := os.Remove(employeeprofile.QrCodeBankAccount); err != nil && !os.IsNotExist(err) {
+			os.Remove(profilePath)
+			os.Remove(qrcodePath)
+			tx.Rollback()
+			return fmt.Errorf("failed to delete old qr code image: %w", err)
+		}
+	}
+
+	employee.NameEn = input.NameEn
+	employee.NameKh = input.NameKh
+	employee.NationalID = input.NationalID
+	employee.Gender = input.Gender
+	employee.PositionID = input.PositionID
+	employee.HireDate = input.HireDate
+	employee.PromoteDate = input.PromoteDate
+	employee.IsPromote = input.IsPromote
+	employee.EmployeeTypeID = input.EmployeeTypeID
+	employee.OfficeID = input.OfficeID
+	employee.UpdateBy = userID
+	employeeprofile.ProfileImage = profilePath
+	employeeprofile.QrCodeBankAccount = qrcodePath
+	employeeprofile.PositionLevelID = input.PositionLevelID
+	employeeprofile.DoB = input.DoB
+	employeeprofile.VillageIdOfBirth = input.VillageIdOfBirth
+	employeeprofile.MaterialStatus = input.MaterialStatus
+	employeeprofile.VillageIDCurrentAddress = input.VillageIDCurrentAddress
+	employeeprofile.FamilyPhone = input.FamilyPhone
+	employeeprofile.BankName = input.BankName
+	employeeprofile.BankAccountNumber = input.BankAccountNumber
+	employeeprofile.ReportoID = input.ReportoID
+	employeeprofile.WifeName = input.WifeName
+	employeeprofile.HusBanName = input.HusBanName
+	employeeprofile.SonNumber = input.SonNumber
+	employeeprofile.DaughterNumber = input.DaughterNumber
+	employeeprofile.UpdateBy = userID
+
+	if err := tx.Save(&employee).Error; err != nil {
+		os.Remove(profilePath)
+		os.Remove(qrcodePath)
+		tx.Rollback()
+		return fmt.Errorf("failed to save employee: %w", err)
+	}
+
+	if err := tx.Save(&employeeprofile).Error; err != nil {
+		os.Remove(profilePath)
+		os.Remove(qrcodePath)
+		tx.Rollback()
+		return fmt.Errorf("failed to save employee profile: %w", err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		os.Remove(profilePath)
+		os.Remove(qrcodePath)
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
 }
