@@ -316,7 +316,7 @@ func (s *authservice) Register(id int, input request.RegisterRequest, c *gin.Con
 		return err
 	}
 
-	username := strings.ToLower(input.NameEn)
+	username := strings.ReplaceAll(strings.ToLower(input.NameEn), "         ", "")
 	email := fmt.Sprintf("%s168@gmail.com", username)
 	password := utils.HasPassword("123456")
 	user := model.User{
