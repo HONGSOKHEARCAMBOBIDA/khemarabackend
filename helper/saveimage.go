@@ -13,7 +13,7 @@ import (
 func SaveImage(c *gin.Context, formKey string, dir string) (string, error) {
 	file, err := c.FormFile(formKey)
 	if err != nil {
-		return "", err
+		return "", nil
 	}
 
 	if _, err := os.Stat(dir); os.IsNotExist(err) {

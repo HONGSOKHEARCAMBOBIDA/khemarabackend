@@ -17,6 +17,8 @@ import (
 type EmployeeService interface {
 	GetEmployee(filters map[string]string, pagination request.Pagination) ([]response.EmployeeResponseDetail, *model.PaginationMetadata, error)
 	UpdateEmployee(id int, input request.EmployeeEmpoyeeProfileRequestUpdate, c *gin.Context, userID int) error
+	UpdateEmployeeEducation(id int, input request.EmployeeEducationRequestUpdate, c *gin.Context) error
+	CreateEmployeeEducation(input request.EmployeeEducationRequestCreate, c *gin.Context) error
 }
 
 type employeeservice struct {
@@ -162,7 +164,7 @@ func (s *employeeservice) GetEmployee(filters map[string]string, pagination requ
 			var educations []response.EmployeeEducationRespons
 			if err := s.db.Table("employee_educations ee").
 				Select(`
-					ee.id AS id,
+					ee.id AS employee_education_id,
 					ee.education_level_id AS education_level_id,
 					el.name AS education_level_name,
 					ee.major_field_of_study AS major_field_of_study,
@@ -404,22 +406,27 @@ func (s *employeeservice) UpdateEmployee(id int, input request.EmployeeEmpoyeePr
 		return fmt.Errorf("failed to save qr code image: %w", err)
 	}
 
-	if employeeprofile.ProfileImage != "" {
-		if err := os.Remove(employeeprofile.ProfileImage); err != nil && !os.IsNotExist(err) {
-			os.Remove(profilePath)
-			os.Remove(qrcodePath)
-			tx.Rollback()
-			return fmt.Errorf("failed to delete old profile image: %w", err)
+	if profilePath != "" {
+		if employeeprofile.ProfileImage != "" {
+			if err := os.Remove(employeeprofile.ProfileImage); err != nil && !os.IsNotExist(err) {
+				os.Remove(profilePath)
+				tx.Rollback()
+				return fmt.Errorf("failed to delete old profile image: %w", err)
+			}
 		}
+		employeeprofile.ProfileImage = profilePath
 	}
 
-	if employeeprofile.QrCodeBankAccount != "" {
-		if err := os.Remove(employeeprofile.QrCodeBankAccount); err != nil && !os.IsNotExist(err) {
-			os.Remove(profilePath)
-			os.Remove(qrcodePath)
-			tx.Rollback()
-			return fmt.Errorf("failed to delete old qr code image: %w", err)
+	if qrcodePath != "" {
+		if employeeprofile.QrCodeBankAccount != "" {
+			if err := os.Remove(employeeprofile.QrCodeBankAccount); err != nil && !os.IsNotExist(err) {
+				os.Remove(profilePath)
+				os.Remove(qrcodePath)
+				tx.Rollback()
+				return fmt.Errorf("failed to delete old qr code image: %w", err)
+			}
 		}
+		employeeprofile.QrCodeBankAccount = qrcodePath
 	}
 
 	employee.NameEn = input.NameEn
@@ -433,8 +440,6 @@ func (s *employeeservice) UpdateEmployee(id int, input request.EmployeeEmpoyeePr
 	employee.EmployeeTypeID = input.EmployeeTypeID
 	employee.OfficeID = input.OfficeID
 	employee.UpdateBy = userID
-	employeeprofile.ProfileImage = profilePath
-	employeeprofile.QrCodeBankAccount = qrcodePath
 	employeeprofile.PositionLevelID = input.PositionLevelID
 	employeeprofile.DoB = input.DoB
 	employeeprofile.VillageIdOfBirth = input.VillageIdOfBirth
@@ -470,5 +475,88 @@ func (s *employeeservice) UpdateEmployee(id int, input request.EmployeeEmpoyeePr
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
+	return nil
+}
+
+func (s *employeeservice) UpdateEmployeeEducation(id int, input request.EmployeeEducationRequestUpdate, c *gin.Context) error {
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+	var employeeeduction model.EmployeeEducation
+	if err := tx.Where("id =?", id).First(&employeeeduction).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+	image, err := helper.SaveImage(c, "education_image", "public/educationimage")
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to save profile image: %w", err)
+	}
+	if image != "" {
+		if employeeeduction.Image != "" {
+			if err := os.Remove(employeeeduction.Image); err != nil && !os.IsNotExist(err) {
+				os.Remove(image)
+				tx.Rollback()
+				return fmt.Errorf("failed to delete old profile image: %w", err)
+			}
+		}
+		employeeeduction.Image = image
+	}
+	employeeeduction.EducationLevelID = input.EducationLevelID
+	employeeeduction.MajorField = input.MajorField
+	employeeeduction.StartDate = input.StartDate
+	employeeeduction.EndDate = input.EndDate
+	employeeeduction.Note = input.Note
+	if err := tx.Save(&employeeeduction).Error; err != nil {
+		os.Remove(image)
+		tx.Rollback()
+		return fmt.Errorf("failed to save employee: %w", err)
+	}
+	if err := tx.Commit().Error; err != nil {
+		os.Remove(image)
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+	return nil
+}
+
+func (s *employeeservice) CreateEmployeeEducation(input request.EmployeeEducationRequestCreate, c *gin.Context) error {
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+	image, err := helper.SaveImage(c, "education_image", "public/educationimage")
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("failed to save profile image: %w", err)
+	}
+	employeeeducation := model.EmployeeEducation{
+		EmployeeID:       input.EmployeeID,
+		EducationLevelID: input.EducationLevelID,
+		MajorField:       input.MajorField,
+		StartDate:        input.StartDate,
+		EndDate:          input.EndDate,
+		Note:             input.Note,
+		Image:            image,
+	}
+	if err := tx.Create(&employeeeducation).Error; err != nil {
+		os.Remove(image)
+		tx.Rollback()
+		return fmt.Errorf("failed to save profile image: %w", err)
+	}
+	if err := tx.Commit().Error; err != nil {
+		os.Remove(image)
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
 	return nil
 }

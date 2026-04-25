@@ -76,3 +76,35 @@ func (cr *EmployeeController) UpdateEmployee(c *gin.Context) {
 	}
 	share.ResponseSuccess(c, http.StatusOK, "update success")
 }
+
+func (cr *EmployeeController) UpdateEmployeeEducation(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	var input request.EmployeeEducationRequestUpdate
+	if err := c.ShouldBind(&input); err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := cr.service.UpdateEmployeeEducation(id, input, c); err != nil {
+		share.ResponseError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	share.ResponseSuccess(c, http.StatusOK, "updated")
+}
+
+func (cr *EmployeeController) CreateEmployeeEducation(c *gin.Context) {
+	var input request.EmployeeEducationRequestCreate
+	if err := c.ShouldBind(&input); err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := cr.service.CreateEmployeeEducation(input, c); err != nil {
+		share.ResponseError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	share.ResponseSuccess(c, http.StatusOK, "created")
+}

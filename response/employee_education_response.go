@@ -1,7 +1,7 @@
 package response
 
 type EmployeeEducationRespons struct {
-	ID                 int    `json:"id"`
+	ID                 int    `json:"employee_education_id" gorm:"column:employee_education_id"`
 	EducationLevelID   int    `json:"education_level_id"`
 	EducationLevelName string `json:"education_level_name"`
 	MajorField         string `json:"major_field_of_study" gorm:"column:major_field_of_study"`
