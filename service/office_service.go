@@ -23,8 +23,12 @@ func NewOfficeService() OfficeService {
 
 func (s *officeservice) GetAllOffice() ([]model.Office, error) {
 	var offices []model.Office
-	if err := s.db.Find(&offices).Error; err != nil {
+
+	if err := s.db.
+		Order("id DESC").
+		Find(&offices).Error; err != nil {
 		return nil, err
 	}
+
 	return offices, nil
 }
