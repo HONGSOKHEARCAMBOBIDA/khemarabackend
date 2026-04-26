@@ -108,3 +108,22 @@ func (cr *EmployeeController) CreateEmployeeEducation(c *gin.Context) {
 	}
 	share.ResponseSuccess(c, http.StatusOK, "created")
 }
+
+func (cr *EmployeeController) UpdateEmployeeWorkExperience(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	var input request.EmployeeWorkExperienceRequestUpdate
+	if err := c.ShouldBindJSON(&input); err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := cr.service.UpdateEmployeeWorkExperience(id, input); err != nil {
+		share.ResponseError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	share.ResponseSuccess(c, http.StatusOK, "Update")
+}

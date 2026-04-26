@@ -145,5 +145,6 @@ func SetupRoutes(r *gin.Engine) {
 		auth.PUT(route.EditEmployee, middleware.PermissionMiddleware(permission.EditEmployee), employeecontroller.UpdateEmployee)
 		auth.PUT(route.EditEducation, middleware.PermissionMiddleware(permission.EditEmployee), employeecontroller.UpdateEmployeeEducation)
 		auth.POST(route.CreateEducation, middleware.PermissionMiddleware(permission.EditEmployee), employeecontroller.CreateEmployeeEducation)
+		auth.PUT(route.EditWorkExperience, middleware.PermissionMiddleware(permission.EditEmployee), employeecontroller.UpdateEmployeeWorkExperience)
 	}
 }

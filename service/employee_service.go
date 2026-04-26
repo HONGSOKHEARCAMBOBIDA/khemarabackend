@@ -19,6 +19,7 @@ type EmployeeService interface {
 	UpdateEmployee(id int, input request.EmployeeEmpoyeeProfileRequestUpdate, c *gin.Context, userID int) error
 	UpdateEmployeeEducation(id int, input request.EmployeeEducationRequestUpdate, c *gin.Context) error
 	CreateEmployeeEducation(input request.EmployeeEducationRequestCreate, c *gin.Context) error
+	UpdateEmployeeWorkExperience(id int, input request.EmployeeWorkExperienceRequestUpdate) error
 }
 
 type employeeservice struct {
@@ -557,6 +558,36 @@ func (s *employeeservice) CreateEmployeeEducation(input request.EmployeeEducatio
 	if err := tx.Commit().Error; err != nil {
 		os.Remove(image)
 		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+	return nil
+}
+
+func (s *employeeservice) UpdateEmployeeWorkExperience(id int, input request.EmployeeWorkExperienceRequestUpdate) error {
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+	var employeeworkexperience model.EmployeeWorkExperience
+	if err := tx.Where("id =?", id).First(&employeeworkexperience).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+	employeeworkexperience.CompanyName = input.CompanyName
+	employeeworkexperience.PositionTitle = input.PositionTitle
+	employeeworkexperience.StartDate = input.StartDate
+	employeeworkexperience.EndDate = input.EndDate
+	if err := tx.Save(&employeeworkexperience).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
+		return err
 	}
 	return nil
 }
