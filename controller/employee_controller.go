@@ -117,7 +117,7 @@ func (cr *EmployeeController) UpdateEmployeeWorkExperience(c *gin.Context) {
 		return
 	}
 	var input request.EmployeeWorkExperienceRequestUpdate
-	if err := c.ShouldBindJSON(&input); err != nil {
+	if err := c.ShouldBind(&input); err != nil {
 		share.ResponseError(c, http.StatusBadRequest, err.Error())
 		return
 	}

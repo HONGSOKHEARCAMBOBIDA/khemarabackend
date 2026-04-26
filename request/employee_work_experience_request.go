@@ -1,9 +1,9 @@
 package request
 
 type EmployeeWorkExperienceRequestUpdate struct {
-	CompanyName    string `json:"company_name"`
-	PositionTitle  string `json:"position_title"`
-	StartDate      string `json:"start_date"`
-	EndDate        string `json:"end_date"`
-	JobDescription string `json:"job_description"`
+	CompanyName    string `form:"company_name"`
+	PositionTitle  string `form:"position_title"`
+	StartDate      string `form:"start_date"`
+	EndDate        string `form:"end_date"`
+	JobDescription string `form:"job_description"`
 }
