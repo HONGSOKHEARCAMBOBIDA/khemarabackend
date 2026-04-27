@@ -20,6 +20,8 @@ type EmployeeService interface {
 	UpdateEmployeeEducation(id int, input request.EmployeeEducationRequestUpdate, c *gin.Context) error
 	CreateEmployeeEducation(input request.EmployeeEducationRequestCreate, c *gin.Context) error
 	UpdateEmployeeWorkExperience(id int, input request.EmployeeWorkExperienceRequestUpdate) error
+	CreateEmployeeWorkExperience(input request.EmployeeWorkExperienceRequestCreate) error
+	UpdateSalary(id int, input request.SalaryRequestUpdate) error
 }
 
 type employeeservice struct {
@@ -581,6 +583,7 @@ func (s *employeeservice) UpdateEmployeeWorkExperience(id int, input request.Emp
 	employeeworkexperience.PositionTitle = input.PositionTitle
 	employeeworkexperience.StartDate = input.StartDate
 	employeeworkexperience.EndDate = input.EndDate
+	employeeworkexperience.JobDescription = input.JobDescription
 	if err := tx.Save(&employeeworkexperience).Error; err != nil {
 		tx.Rollback()
 		return err
@@ -590,4 +593,64 @@ func (s *employeeservice) UpdateEmployeeWorkExperience(id int, input request.Emp
 		return err
 	}
 	return nil
+}
+
+func (s *employeeservice) CreateEmployeeWorkExperience(input request.EmployeeWorkExperienceRequestCreate) error {
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+	workexperience := model.EmployeeWorkExperience{
+		EmployeeID:     input.EmployeeID,
+		CompanyName:    input.CompanyName,
+		PositionTitle:  input.PositionTitle,
+		StartDate:      input.StartDate,
+		EndDate:        input.EndDate,
+		JobDescription: input.JobDescription,
+	}
+	if err := tx.Create(&workexperience).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("faild to create")
+	}
+	if err := tx.Commit().Error; err != nil {
+		return fmt.Errorf("faild transaction")
+	}
+	return nil
+}
+
+func (s *employeeservice) UpdateSalary(id int, input request.SalaryRequestUpdate) error {
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+	var salary model.Salary
+	if err := tx.Where("id =?", id).First(&salary).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+	salary.BaseSalary = input.BaseSalary
+	salary.WorkDay = input.WorkDay
+	salary.DailyRate = input.DailyRate
+	salary.EffectiveDate = input.EffectiveDate
+	salary.CurrencyID = input.CurrencyID
+
+	if err := tx.Save(&salary).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := tx.Commit().Error; err != nil {
+		return err
+	}
+	return nil
+
 }

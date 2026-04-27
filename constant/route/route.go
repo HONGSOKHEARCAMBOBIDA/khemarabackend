@@ -106,9 +106,11 @@ const (
 	ViewPart = "view.part"
 
 	// Employee
-	ViewEmployee       = "view.employee"
-	EditEmployee       = "edit.employee/:id"
-	EditEducation      = "edit.education/:id"
-	CreateEducation    = "add.education"
-	EditWorkExperience = "edit.work.experience/:id"
+	ViewEmployee         = "view.employee"
+	EditEmployee         = "edit.employee/:id"
+	EditEducation        = "edit.education/:id"
+	CreateEducation      = "add.education"
+	EditWorkExperience   = "edit.work.experience/:id"
+	CreateWorkExperience = "add.work.experience"
+	EditSalary           = "edit.salary/:id"
 )

@@ -127,3 +127,35 @@ func (cr *EmployeeController) UpdateEmployeeWorkExperience(c *gin.Context) {
 	}
 	share.ResponseSuccess(c, http.StatusOK, "Update")
 }
+
+func (cr *EmployeeController) CreateEmployeeWorkExperience(c *gin.Context) {
+	var input request.EmployeeWorkExperienceRequestCreate
+	if err := c.ShouldBind(&input); err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := cr.service.CreateEmployeeWorkExperience(input); err != nil {
+		share.ResponseError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	share.ResponseSuccess(c, http.StatusOK, "created")
+}
+
+func (cr *EmployeeController) UpdateSalary(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	var input request.SalaryRequestUpdate
+	if err := c.ShouldBind(&input); err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := cr.service.UpdateSalary(id, input); err != nil {
+		share.ResponseError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	share.ResponseSuccess(c, http.StatusOK, "updated")
+}

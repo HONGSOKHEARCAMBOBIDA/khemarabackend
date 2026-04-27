@@ -20,7 +20,7 @@ func NewEmployeeTypeController() EmployeeTypeController {
 	}
 }
 
-func (cr EmployeeTypeController) GetEmployeeType(c *gin.Context) {
+func (cr *EmployeeTypeController) GetEmployeeType(c *gin.Context) {
 	data, err := cr.service.GetEmployeeType()
 	if err != nil {
 		share.ResponseError(c, http.StatusNoContent, err.Error())
@@ -42,7 +42,7 @@ func (cr EmployeeTypeController) CreateEmployeeType(c *gin.Context) {
 	share.ResponseSuccess(c, http.StatusOK, "employee type create")
 }
 
-func (cr EmployeeTypeController) UpdateEmployeeType(c *gin.Context) {
+func (cr *EmployeeTypeController) UpdateEmployeeType(c *gin.Context) {
 	idparam := c.Param("id")
 
 	id, err := strconv.Atoi(idparam)
@@ -62,7 +62,7 @@ func (cr EmployeeTypeController) UpdateEmployeeType(c *gin.Context) {
 	share.ResponseSuccess(c, http.StatusOK, "employee type updated")
 }
 
-func (cr EmployeeTypeController) ChangeStatusEmployeeType(c *gin.Context) {
+func (cr *EmployeeTypeController) ChangeStatusEmployeeType(c *gin.Context) {
 	idparam := c.Param("id")
 	id, err := strconv.Atoi(idparam)
 	if err != nil {

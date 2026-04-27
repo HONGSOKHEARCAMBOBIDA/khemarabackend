@@ -304,7 +304,7 @@ func (s *authservice) Register(id int, input request.RegisterRequest, c *gin.Con
 		BaseSalary:    input.BaseSalary,
 		WorkDay:       input.WorkDay,
 		DailyRate:     input.DailyRate,
-		EffectiveDate: time.Now(),
+		EffectiveDate: time.Now().Format("2006-01-02 15:04:05"),
 		ExpireDate:    nil,
 		CurrencyID:    input.CurrencyID,
 		Isactive:      true,
