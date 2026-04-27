@@ -150,5 +150,6 @@ func SetupRoutes(r *gin.Engine) {
 		auth.PUT(route.EditSalary, middleware.PermissionMiddleware(permission.EditEmployee), employeecontroller.UpdateSalary)
 		auth.POST(route.CreateSalary, middleware.PermissionMiddleware(permission.EditEmployee), employeecontroller.CreateSalary)
 		auth.PUT(route.ChangeShiftPattern, middleware.PermissionMiddleware(permission.EditEmployee), employeecontroller.ChangeShiftPattern)
+		auth.PUT(route.ChangeShift, middleware.PermissionMiddleware(permission.EditEmployee), employeecontroller.ChangeShift)
 	}
 }

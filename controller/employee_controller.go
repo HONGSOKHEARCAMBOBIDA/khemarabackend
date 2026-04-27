@@ -186,3 +186,16 @@ func (cr *EmployeeController) ChangeShiftPattern(c *gin.Context) {
 	}
 	share.ResponseSuccess(c, http.StatusOK, "updated")
 }
+
+func (cr *EmployeeController) ChangeShift(c *gin.Context) {
+	var input request.ShiftPatternRequestUpdate
+	if err := c.ShouldBind(&input); err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := cr.service.ChangeShift(input); err != nil {
+		share.ResponseError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	share.ResponseSuccess(c, http.StatusOK, "update")
+}

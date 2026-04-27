@@ -115,4 +115,5 @@ const (
 	EditSalary           = "edit.salary/:id"
 	CreateSalary         = "add.salary"
 	ChangeShiftPattern   = "edit.shift.pattern/:id"
+	ChangeShift          = "edit.shift"
 )
