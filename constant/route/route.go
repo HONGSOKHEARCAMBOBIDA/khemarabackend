@@ -114,4 +114,5 @@ const (
 	CreateWorkExperience = "add.work.experience"
 	EditSalary           = "edit.salary/:id"
 	CreateSalary         = "add.salary"
+	ChangeShiftPattern   = "edit.shift.pattern/:id"
 )

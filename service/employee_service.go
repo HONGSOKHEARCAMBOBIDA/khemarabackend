@@ -24,6 +24,7 @@ type EmployeeService interface {
 	CreateEmployeeWorkExperience(input request.EmployeeWorkExperienceRequestCreate) error
 	UpdateSalary(id int, input request.SalaryRequestUpdate) error
 	CreateSalary(input request.SalaryRequestCreate) error
+	ChangeShiftPattern(id int) error
 }
 
 type employeeservice struct {
@@ -64,7 +65,7 @@ func (s *employeeservice) GetEmployee(filters map[string]string, pagination requ
 		Joins("LEFT JOIN roles r ON r.id = u.role_id").
 		Joins("LEFT JOIN manage_branches mb ON mb.id = u.manage_branch").
 		Joins("LEFT JOIN employees e ON e.id = u.employee_id").
-		Joins("LEFT JOIN positions p ON p.id = e.position_id")
+		Joins("LEFT JOIN positions p ON p.id = e.position_id").Order("u.id DESC")
 
 	for key, value := range filters {
 		if value != "" {
@@ -705,4 +706,13 @@ func (s *employeeservice) CreateSalary(input request.SalaryRequestCreate) error 
 	}
 
 	return tx.Commit().Error
+}
+
+func (s *employeeservice) ChangeShiftPattern(id int) error {
+	var shiftpattern model.ShiftPattern
+	if err := s.db.First(&shiftpattern, id).Error; err != nil {
+		return err
+	}
+	shiftpattern.Isdayoff = !shiftpattern.Isdayoff
+	return s.db.Save(&shiftpattern).Error
 }

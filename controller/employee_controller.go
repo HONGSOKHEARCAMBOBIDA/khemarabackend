@@ -172,3 +172,17 @@ func (cr *EmployeeController) CreateSalary(c *gin.Context) {
 	}
 	share.ResponseSuccess(c, http.StatusOK, "created")
 }
+
+func (cr *EmployeeController) ChangeShiftPattern(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := cr.service.ChangeShiftPattern(id); err != nil {
+		share.ResponseError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	share.ResponseSuccess(c, http.StatusOK, "updated")
+}
