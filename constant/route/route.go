@@ -113,4 +113,5 @@ const (
 	EditWorkExperience   = "edit.work.experience/:id"
 	CreateWorkExperience = "add.work.experience"
 	EditSalary           = "edit.salary/:id"
+	CreateSalary         = "add.salary"
 )

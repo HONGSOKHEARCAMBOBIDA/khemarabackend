@@ -9,6 +9,7 @@ import (
 	"mysql/request"
 	"mysql/response"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -22,6 +23,7 @@ type EmployeeService interface {
 	UpdateEmployeeWorkExperience(id int, input request.EmployeeWorkExperienceRequestUpdate) error
 	CreateEmployeeWorkExperience(input request.EmployeeWorkExperienceRequestCreate) error
 	UpdateSalary(id int, input request.SalaryRequestUpdate) error
+	CreateSalary(input request.SalaryRequestCreate) error
 }
 
 type employeeservice struct {
@@ -653,4 +655,54 @@ func (s *employeeservice) UpdateSalary(id int, input request.SalaryRequestUpdate
 	}
 	return nil
 
+}
+
+func (s *employeeservice) CreateSalary(input request.SalaryRequestCreate) error {
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	var lastSalary model.Salary
+	err := tx.Where("employee_id = ?", input.EmployeeID).
+		Order("id DESC").
+		First(&lastSalary).Error
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		tx.Rollback()
+		return err
+	}
+
+	if err == nil {
+		now := time.Now()
+		lastSalary.Isactive = false
+		lastSalary.ExpireDate = &now
+		if err := tx.Save(&lastSalary).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	newSalary := model.Salary{
+		EmployeeID:    input.EmployeeID,
+		BaseSalary:    input.BaseSalary,
+		WorkDay:       input.WorkDay,
+		DailyRate:     input.DailyRate,
+		EffectiveDate: time.Now().Format("2006-01-02 15:04:05"),
+		ExpireDate:    nil,
+		CurrencyID:    input.CurrencyID,
+		Isactive:      true,
+	}
+
+	if err := tx.Create(&newSalary).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return tx.Commit().Error
 }

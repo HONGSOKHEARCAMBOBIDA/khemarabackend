@@ -159,3 +159,16 @@ func (cr *EmployeeController) UpdateSalary(c *gin.Context) {
 	}
 	share.ResponseSuccess(c, http.StatusOK, "updated")
 }
+
+func (cr *EmployeeController) CreateSalary(c *gin.Context) {
+	var input request.SalaryRequestCreate
+	if err := c.ShouldBind(&input); err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := cr.service.CreateSalary(input); err != nil {
+		share.ResponseError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	share.ResponseSuccess(c, http.StatusOK, "created")
+}
