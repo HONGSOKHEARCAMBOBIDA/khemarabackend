@@ -33,6 +33,7 @@ func SetupRoutes(r *gin.Engine) {
 	shiftsessioncontroller := controller.NewShiftSessionController()
 	partcontroller := controller.NewPartController()
 	employeecontroller := controller.NewEmployeeController()
+	statusattendance := controller.NewStatusAttendanceLogController()
 	r.Static("/profileimage", "./public/profileimage")
 	r.Static("/qrcodeimage", "./public/qrcodeimage")
 	r.Static("/educationimage", "./public/educationimage")
@@ -151,5 +152,8 @@ func SetupRoutes(r *gin.Engine) {
 		auth.POST(route.CreateSalary, middleware.PermissionMiddleware(permission.EditEmployee), employeecontroller.CreateSalary)
 		auth.PUT(route.ChangeShiftPattern, middleware.PermissionMiddleware(permission.EditEmployee), employeecontroller.ChangeShiftPattern)
 		auth.PUT(route.ChangeShift, middleware.PermissionMiddleware(permission.EditEmployee), employeecontroller.ChangeShift)
+
+		// StatusAttendace
+		auth.GET(route.ViewStatusAttendance, middleware.PermissionMiddleware(permission.ViewStatusAttendance), statusattendance.GetStatusAttendanceLogService)
 	}
 }

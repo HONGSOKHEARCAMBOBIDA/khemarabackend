@@ -116,4 +116,7 @@ const (
 	CreateSalary         = "add.salary"
 	ChangeShiftPattern   = "edit.shift.pattern/:id"
 	ChangeShift          = "edit.shift"
+
+	// StatusAttendanceLog
+	ViewStatusAttendance = "view.status.attendance"
 )

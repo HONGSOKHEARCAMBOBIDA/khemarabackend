@@ -99,4 +99,7 @@ const (
 	// Employee
 	ViewEmployee = "view.employee"
 	EditEmployee = "edit.employee"
+
+	// StatusAttendanceLog
+	ViewStatusAttendance = "view.status.attendance"
 )
