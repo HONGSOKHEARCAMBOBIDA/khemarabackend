@@ -123,4 +123,5 @@ const (
 	// Attendance
 	AddAttendance  = "add.attendance"
 	ViewAttendance = "view.attendance"
+	CheckOut       = "check.out"
 )

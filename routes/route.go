@@ -159,5 +159,6 @@ func SetupRoutes(r *gin.Engine) {
 
 		// Attendance
 		auth.POST(route.AddAttendance, middleware.PermissionMiddleware(permission.AddAttendance), attendancecontroller.CheckIn)
+		auth.POST(route.CheckOut, middleware.PermissionMiddleware(permission.AddAttendance), attendancecontroller.CheckOut)
 	}
 }

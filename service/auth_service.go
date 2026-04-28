@@ -96,10 +96,12 @@ func (s *authservice) Login(input request.AuthRequest, c *gin.Context) (*respons
 	// }
 
 	claims := jwt.MapClaims{
-		"user_id": user.ID,
-		"contact": user.Contact,
-		"role_id": user.RoleID,
-		"exp":     expirationTime.Unix(),
+		"user_id":     user.ID,
+		"branch_id":   user.BranchID,
+		"employee_id": user.EmployeeID,
+		"contact":     user.Contact,
+		"role_id":     user.RoleID,
+		"exp":         expirationTime.Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

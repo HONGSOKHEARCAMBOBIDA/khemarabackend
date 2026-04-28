@@ -7,10 +7,27 @@ type AttendanceRecord struct {
 	AttendanceLogID int       `json:"attendance_log_id"`
 	ShiftSessionID  int       `json:"shift_session_id"`
 	CheckTime       time.Time `json:"check_time"`
-	IsLate          int       `json:"is_late"`
+	IsLate          *int      `json:"is_late"`
 	IsLeftEarly     *int      `json:"is_left_early"`
 	Latitude        float64   `json:"latitude"`
 	Logitude        float64   `json:"longitude" gorm:"column:longitude"`
 	Note            string    `json:"note"`
 	Iszoone         bool      `json:"iszonecheckin" gorm:"column:iszonecheckin"`
+}
+
+type AttendanceRecordRes struct {
+	ID              int     `json:"id"`
+	AttendanceLogID int     `json:"attendance_log_id"`
+	ShiftSessionID  int     `json:"shift_session_id"`
+	CheckTime       string  `json:"check_time"`
+	IsLate          *int    `json:"is_late"`
+	IsLeftEarly     *int    `json:"is_left_early"`
+	Latitude        float64 `json:"latitude"`
+	Logitude        float64 `json:"longitude" gorm:"column:longitude"`
+	Note            string  `json:"note"`
+	Iszoone         bool    `json:"iszonecheckin" gorm:"column:iszonecheckin"`
+}
+
+func (AttendanceRecordRes) TableName() string {
+	return "attendance_records"
 }

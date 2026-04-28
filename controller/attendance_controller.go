@@ -31,3 +31,16 @@ func (cr *AttendanceController) CheckIn(c *gin.Context) {
 	}
 	share.ResponseSuccess(c, http.StatusOK, "check-in success")
 }
+
+func (cr *AttendanceController) CheckOut(c *gin.Context) {
+	var input request.LocationRequest
+	if err := c.ShouldBind(&input); err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := cr.service.CheckOut(input); err != nil {
+		share.ResponseError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	share.ResponseSuccess(c, http.StatusOK, "check-out success")
+}

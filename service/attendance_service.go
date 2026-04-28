@@ -13,6 +13,7 @@ import (
 
 type AttendanceService interface {
 	CheckIn(input request.LocationRequest) error
+	CheckOut(input request.LocationRequest) error
 }
 
 type attendanceservice struct {
@@ -121,7 +122,7 @@ func (s *attendanceservice) CheckIn(input request.LocationRequest) error {
 			AttendanceLogID: newlog.ID,
 			ShiftSessionID:  session.ID,
 			CheckTime:       now,
-			IsLate:          is_late,
+			IsLate:          &is_late,
 			IsLeftEarly:     nil,
 			Latitude:        lat,
 			Logitude:        log,
@@ -179,7 +180,7 @@ func (s *attendanceservice) CheckIn(input request.LocationRequest) error {
 			AttendanceLogID: attendancelog.ID,
 			ShiftSessionID:  session.ID,
 			CheckTime:       now,
-			IsLate:          is_late,
+			IsLate:          &is_late,
 			IsLeftEarly:     nil,
 			Latitude:        lat,
 			Logitude:        log,
@@ -198,5 +199,108 @@ func (s *attendanceservice) CheckIn(input request.LocationRequest) error {
 		// TODO: create next session log
 	}
 
+	return tx.Commit().Error
+}
+
+func (s *attendanceservice) CheckOut(input request.LocationRequest) error {
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	now := time.Now()
+	dayOfWeek := int(now.Weekday())
+	dayOfWeek = (dayOfWeek+6)%7 + 1
+
+	var shiftpattern model.ShiftPattern
+	if err := tx.Where("employee_id = ? AND day_of_week_id = ?", input.EmployeeID, dayOfWeek).
+		First(&shiftpattern).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if shiftpattern.Isdayoff {
+		tx.Rollback()
+		return nil
+	}
+
+	var branch model.Branch
+	if err := tx.First(&branch, input.BranchID).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+	var attendancelog model.AttendanceLog
+	err := tx.Where("employee_id =? AND status_attendance_log_id =?", input.EmployeeID, 1).Order("id DESC").First(&attendancelog).Error
+	if err != nil {
+		tx.Rollback()
+		return err
+	} else {
+		var attendancerecore model.AttendanceRecordRes
+		if err := tx.Where("attendance_log_id =?", attendancelog.ID).First(&attendancerecore).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
+		var session model.ShiftSession
+		if err := tx.Where("id =?", attendancerecore.ShiftSessionID).First(&session).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
+		lat, err := strconv.ParseFloat(branch.Latitude, 64)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		log, err := strconv.ParseFloat(branch.Longitude, 64)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		latput, err := strconv.ParseFloat(input.Latitude, 64)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		logput, err := strconv.ParseFloat(input.Longitude, 64)
+		if err != nil {
+			tx.Rollback()
+			return err
+		}
+		distance := utils.CalculateDistance(lat, log, latput, logput)
+		inzone := distance <= float64(branch.Radius)
+		now := time.Now()
+		endTime, _ := time.Parse("15:04:05", session.EndTime)
+		currentDate := time.Now().Format("2006-01-02")
+		shiftEnd := time.Date(now.Year(), now.Month(), now.Day(), endTime.Hour(), endTime.Minute(), endTime.Second(), 0, now.Location())
+		isLeftEarly := 0
+		if now.Before(shiftEnd) {
+			isLeftEarly = 1
+		}
+		attendancelog.StatusAttendanceLogID = 2
+		attendancelog.CheckDate = currentDate
+		if err := tx.Save(&attendancelog).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
+		newattendancerecord := model.AttendanceRecord{
+			AttendanceLogID: attendancerecore.ID,
+			ShiftSessionID:  session.ID,
+			CheckTime:       now,
+			IsLate:          nil,
+			IsLeftEarly:     &isLeftEarly,
+			Latitude:        lat,
+			Logitude:        log,
+			Note:            input.Note,
+			Iszoone:         inzone,
+		}
+		if err := tx.Create(&newattendancerecord).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
 	return tx.Commit().Error
 }
