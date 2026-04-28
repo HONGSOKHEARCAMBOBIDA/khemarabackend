@@ -1,7 +1,9 @@
 package request
 
 type LocationRequest struct {
-	Latitude  string `json:"latitude"`
-	Longitude string `json:"longitude"`
-	Note      string `json:"note"`
+	BranchID   int    `form:"branch_id"`
+	EmployeeID int    `form:"employee_id"`
+	Latitude   string `form:"latitude"`
+	Longitude  string `form:"longitude"`
+	Note       string `form:"note"`
 }

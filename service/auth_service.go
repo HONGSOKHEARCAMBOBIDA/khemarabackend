@@ -88,12 +88,12 @@ func (s *authservice) Login(input request.AuthRequest, c *gin.Context) (*respons
 		return nil, err
 	}
 
-	var permissions []model.Permission
+	// var permissions []model.Permission
 
-	if err := s.db.Table("permissions p").Select("p.id AS id,p.name AS name,p.display_name AS display_name,p.group_name AS group_name,p.short_name AS short_name").
-		Joins("JOIN role_has_permissions rhp ON rhp.permission_id = p.id").Where("rhp.role_id =?", user.RoleID).Scan(&permissions).Error; err != nil {
-		return nil, err
-	}
+	// if err := s.db.Table("permissions p").Select("p.id AS id,p.name AS name,p.display_name AS display_name,p.group_name AS group_name,p.short_name AS short_name").
+	// 	Joins("JOIN role_has_permissions rhp ON rhp.permission_id = p.id").Where("rhp.role_id =?", user.RoleID).Scan(&permissions).Error; err != nil {
+	// 	return nil, err
+	// }
 
 	claims := jwt.MapClaims{
 		"user_id": user.ID,
@@ -120,7 +120,7 @@ func (s *authservice) Login(input request.AuthRequest, c *gin.Context) (*respons
 		RoleID:       uint(user.RoleID),
 		Parts:        userparts,
 		ManageBranch: user.ManageBranch,
-		Permissions:  permissions,
+		// Permissions:  permissions,
 	}
 
 	return resp, nil

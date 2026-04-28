@@ -102,4 +102,8 @@ const (
 
 	// StatusAttendanceLog
 	ViewStatusAttendance = "view.status.attendance"
+
+	// Attendance
+	AddAttendance  = "add.attendance"
+	ViewAttendance = "view.attendance"
 )

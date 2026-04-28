@@ -10,7 +10,7 @@ type AttendanceRecord struct {
 	IsLate          int       `json:"is_late"`
 	IsLeftEarly     *int      `json:"is_left_early"`
 	Latitude        float64   `json:"latitude"`
-	Logitude        float64   `json:"longitude"`
+	Logitude        float64   `json:"longitude" gorm:"column:longitude"`
 	Note            string    `json:"note"`
-	Iszoone         bool      `json:"iszonecheckin"`
+	Iszoone         bool      `json:"iszonecheckin" gorm:"column:iszonecheckin"`
 }

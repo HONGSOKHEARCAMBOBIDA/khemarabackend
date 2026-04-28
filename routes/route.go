@@ -34,6 +34,7 @@ func SetupRoutes(r *gin.Engine) {
 	partcontroller := controller.NewPartController()
 	employeecontroller := controller.NewEmployeeController()
 	statusattendance := controller.NewStatusAttendanceLogController()
+	attendancecontroller := controller.NewAttendanceController()
 	r.Static("/profileimage", "./public/profileimage")
 	r.Static("/qrcodeimage", "./public/qrcodeimage")
 	r.Static("/educationimage", "./public/educationimage")
@@ -155,5 +156,8 @@ func SetupRoutes(r *gin.Engine) {
 
 		// StatusAttendace
 		auth.GET(route.ViewStatusAttendance, middleware.PermissionMiddleware(permission.ViewStatusAttendance), statusattendance.GetStatusAttendanceLogService)
+
+		// Attendance
+		auth.POST(route.AddAttendance, middleware.PermissionMiddleware(permission.AddAttendance), attendancecontroller.CheckIn)
 	}
 }
