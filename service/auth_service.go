@@ -131,6 +131,11 @@ func (s *authservice) Login(input request.AuthRequest, c *gin.Context) (*respons
 		Parts:        userparts,
 		ManageBranch: user.ManageBranch,
 		// Permissions:  permissions,
+		BranchID:        int(branch.ID),
+		BranchLatitude:  branch.Latitude,
+		BranchLongitude: branch.Longitude,
+		BranchRadius:    branch.Radius,
+		EmployeeID:      user.EmployeeID,
 	}
 
 	return resp, nil
