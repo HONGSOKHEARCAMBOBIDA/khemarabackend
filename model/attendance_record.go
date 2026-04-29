@@ -13,6 +13,7 @@ type AttendanceRecord struct {
 	Logitude        float64   `json:"longitude" gorm:"column:longitude"`
 	Note            string    `json:"note"`
 	Iszoone         bool      `json:"iszonecheckin" gorm:"column:iszonecheckin"`
+	Type            string    `json:"type"`
 }
 
 type AttendanceRecordRes struct {

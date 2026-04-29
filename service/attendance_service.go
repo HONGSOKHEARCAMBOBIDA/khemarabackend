@@ -54,19 +54,12 @@ func (s *attendanceservice) CheckIn(input request.LocationRequest) error {
 		return nil
 	}
 
-	var branch model.Branch
-	if err := tx.First(&branch, input.BranchID).Error; err != nil {
-		tx.Rollback()
-		return err
-	}
-
 	var attendancelog model.AttendanceLog
-	err := tx.Where("employee_id = ? AND status_attendance_log_id = ?", input.EmployeeID, 1).
+	err := tx.Where("employee_id = ? AND check_date =?", input.EmployeeID, now.Format("2006-01-02")).
 		Order("id DESC").
 		First(&attendancelog).Error
 
 	if err != nil {
-		// First check-in → get first session
 		var session model.ShiftSession
 		if err := tx.Where("shift_id = ?", shiftpattern.ShiftID).
 			Order("shift_order ASC").
@@ -74,12 +67,12 @@ func (s *attendanceservice) CheckIn(input request.LocationRequest) error {
 			tx.Rollback()
 			return err
 		}
-		lat, err := strconv.ParseFloat(branch.Latitude, 64)
+		lat, err := strconv.ParseFloat(input.BranchLatitude, 64)
 		if err != nil {
 			tx.Rollback()
 			return err
 		}
-		log, err := strconv.ParseFloat(branch.Longitude, 64)
+		log, err := strconv.ParseFloat(input.BranchLongitude, 64)
 		if err != nil {
 			tx.Rollback()
 			return err
@@ -95,7 +88,7 @@ func (s *attendanceservice) CheckIn(input request.LocationRequest) error {
 			return err
 		}
 		distance := utils.CalculateDistance(lat, log, latput, logput)
-		inzone := distance <= float64(branch.Radius)
+		inzone := distance <= float64(input.BranchRadius)
 		currentDate := time.Now().Format("2006-01-02")
 		now := time.Now()
 		start_time, _ := time.Parse("15:04:05", session.StartTime)
@@ -128,6 +121,7 @@ func (s *attendanceservice) CheckIn(input request.LocationRequest) error {
 			Logitude:        log,
 			Note:            input.Note,
 			Iszoone:         inzone,
+			Type:            "IN",
 		}
 
 		if err := tx.Create(&newlogrecore).Error; err != nil {
@@ -135,10 +129,8 @@ func (s *attendanceservice) CheckIn(input request.LocationRequest) error {
 			return err
 		}
 
-		// TODO: create attendance log here
-
 	} else {
-		// Next session
+
 		nextOrder := attendancelog.ShiftSessionOrder + 1
 
 		var session model.ShiftSession
@@ -148,12 +140,12 @@ func (s *attendanceservice) CheckIn(input request.LocationRequest) error {
 			return err
 		}
 
-		lat, err := strconv.ParseFloat(branch.Latitude, 64)
+		lat, err := strconv.ParseFloat(input.BranchLatitude, 64)
 		if err != nil {
 			tx.Rollback()
 			return err
 		}
-		log, err := strconv.ParseFloat(branch.Longitude, 64)
+		log, err := strconv.ParseFloat(input.BranchLongitude, 64)
 		if err != nil {
 			tx.Rollback()
 			return err
@@ -169,15 +161,28 @@ func (s *attendanceservice) CheckIn(input request.LocationRequest) error {
 			return err
 		}
 		distance := utils.CalculateDistance(lat, log, latput, logput)
-		inzone := distance <= float64(branch.Radius)
+		inzone := distance <= float64(input.BranchRadius)
 		now := time.Now()
 		start_time, _ := time.Parse("15:04:05", session.StartTime)
+		currentDate := time.Now().Format("2006-01-02")
 		is_late := 0
 		if now.Hour() > start_time.Hour() || (now.Hour() == start_time.Hour() && now.Minute() > start_time.Minute()) {
 			is_late = 1
 		}
+		newattendancelog := model.AttendanceLog{
+			EmployeeID:            input.EmployeeID,
+			CheckDate:             currentDate,
+			Note:                  "",
+			BranchID:              input.BranchID,
+			StatusAttendanceLogID: 1,
+			ShiftSessionOrder:     nextOrder,
+		}
+		if err := tx.Create(&newattendancelog).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
 		newlogrecore := model.AttendanceRecord{
-			AttendanceLogID: attendancelog.ID,
+			AttendanceLogID: newattendancelog.ID,
 			ShiftSessionID:  session.ID,
 			CheckTime:       now,
 			IsLate:          &is_late,
@@ -186,6 +191,7 @@ func (s *attendanceservice) CheckIn(input request.LocationRequest) error {
 			Logitude:        log,
 			Note:            input.Note,
 			Iszoone:         inzone,
+			Type:            "IN",
 		}
 
 		if err := tx.Create(&newlogrecore).Error; err != nil {
@@ -196,7 +202,6 @@ func (s *attendanceservice) CheckIn(input request.LocationRequest) error {
 			tx.Rollback()
 			return err
 		}
-		// TODO: create next session log
 	}
 
 	return tx.Commit().Error
@@ -229,11 +234,6 @@ func (s *attendanceservice) CheckOut(input request.LocationRequest) error {
 		return nil
 	}
 
-	var branch model.Branch
-	if err := tx.First(&branch, input.BranchID).Error; err != nil {
-		tx.Rollback()
-		return err
-	}
 	var attendancelog model.AttendanceLog
 	err := tx.Where("employee_id =? AND status_attendance_log_id =?", input.EmployeeID, 1).Order("id DESC").First(&attendancelog).Error
 	if err != nil {
@@ -250,12 +250,12 @@ func (s *attendanceservice) CheckOut(input request.LocationRequest) error {
 			tx.Rollback()
 			return err
 		}
-		lat, err := strconv.ParseFloat(branch.Latitude, 64)
+		lat, err := strconv.ParseFloat(input.BranchLatitude, 64)
 		if err != nil {
 			tx.Rollback()
 			return err
 		}
-		log, err := strconv.ParseFloat(branch.Longitude, 64)
+		log, err := strconv.ParseFloat(input.BranchLongitude, 64)
 		if err != nil {
 			tx.Rollback()
 			return err
@@ -271,7 +271,7 @@ func (s *attendanceservice) CheckOut(input request.LocationRequest) error {
 			return err
 		}
 		distance := utils.CalculateDistance(lat, log, latput, logput)
-		inzone := distance <= float64(branch.Radius)
+		inzone := distance <= float64(input.BranchRadius)
 		now := time.Now()
 		endTime, _ := time.Parse("15:04:05", session.EndTime)
 		currentDate := time.Now().Format("2006-01-02")
@@ -287,7 +287,7 @@ func (s *attendanceservice) CheckOut(input request.LocationRequest) error {
 			return err
 		}
 		newattendancerecord := model.AttendanceRecord{
-			AttendanceLogID: attendancerecore.ID,
+			AttendanceLogID: attendancelog.ID,
 			ShiftSessionID:  session.ID,
 			CheckTime:       now,
 			IsLate:          nil,
@@ -296,6 +296,7 @@ func (s *attendanceservice) CheckOut(input request.LocationRequest) error {
 			Logitude:        log,
 			Note:            input.Note,
 			Iszoone:         inzone,
+			Type:            "OUT",
 		}
 		if err := tx.Create(&newattendancerecord).Error; err != nil {
 			tx.Rollback()
