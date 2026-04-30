@@ -101,15 +101,10 @@ func (s *authservice) Login(input request.AuthRequest, c *gin.Context) (*respons
 	}
 
 	claims := jwt.MapClaims{
-		"user_id":          user.ID,
-		"branch_id":        user.BranchID,
-		"branch_latitude":  branch.Latitude,
-		"branch_longitude": branch.Longitude,
-		"branch_radius":    branch.Radius,
-		"employee_id":      user.EmployeeID,
-		"contact":          user.Contact,
-		"role_id":          user.RoleID,
-		"exp":              expirationTime.Unix(),
+		"user_id": user.ID,
+		"contact": user.Contact,
+		"role_id": user.RoleID,
+		"exp":     expirationTime.Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

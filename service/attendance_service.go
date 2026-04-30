@@ -100,7 +100,7 @@ func (s *attendanceservice) CheckIn(input request.LocationRequest) error {
 	} else {
 		if attendancelog.StatusAttendanceLogID == 1 {
 			tx.Rollback()
-			return fmt.Errorf("you don't check-out yet")
+			return fmt.Errorf("អ្នកមិនទាន់ចុចចេញពីធ្វេីការទេ!")
 		}
 		shiftOrder = attendancelog.ShiftSessionOrder + 1
 
@@ -138,8 +138,8 @@ func (s *attendanceservice) CheckIn(input request.LocationRequest) error {
 		CheckTime:       now,
 		IsLate:          &isLate,
 		IsLeftEarly:     nil,
-		Latitude:        branchLat,
-		Logitude:        branchLng,
+		Latitude:        userLat,
+		Logitude:        userLng,
 		Note:            input.Note,
 		Iszoone:         inzone,
 		Type:            "IN",
@@ -247,8 +247,8 @@ func (s *attendanceservice) CheckOut(input request.LocationRequest) error {
 			CheckTime:       now,
 			IsLate:          nil,
 			IsLeftEarly:     &isLeftEarly,
-			Latitude:        lat,
-			Logitude:        log,
+			Latitude:        latput,
+			Logitude:        logput,
 			Note:            input.Note,
 			Iszoone:         inzone,
 			Type:            "OUT",
