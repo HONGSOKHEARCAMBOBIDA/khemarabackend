@@ -134,6 +134,7 @@ func SetupRoutes(r *gin.Engine) {
 		auth.POST(route.AddShiftSession, middleware.PermissionMiddleware(permission.AddShift), shiftsessioncontroller.CreateShiftSession)
 		auth.PUT(route.UpdateShiftSession, middleware.PermissionMiddleware(permission.UpdateShift), shiftsessioncontroller.UpdateShiftSession)
 		auth.PUT(route.ChangeStatusShiftSession, middleware.PermissionMiddleware(permission.ChangeStatusShift), shiftsessioncontroller.ChangeStatusShiftSession)
+		auth.GET(route.ViewShiftSessionV2, middleware.PermissionMiddleware(permission.ViewShift), shiftsessioncontroller.GetShiftSessionV2)
 
 		// User
 		auth.POST(route.AddUser, middleware.PermissionMiddleware(permission.AddUser), authcontroller.Register)

@@ -95,6 +95,7 @@ const (
 	AddShiftSession           = "add.shift.session"
 	UpdateShiftSession        = "update.shift.session/:id"
 	ChangeStatusShiftSession  = "change.status.shift.session/:id"
+	ViewShiftSessionV2        = "view.shift.session"
 
 	// User
 	ViewUserByBranch = "view.user.by.branch/:id"

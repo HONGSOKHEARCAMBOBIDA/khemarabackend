@@ -6,6 +6,7 @@ import (
 	"mysql/model"
 	"mysql/request"
 	"mysql/response"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -16,6 +17,7 @@ type ShiftSessionService interface {
 	CreateShiftSession(input request.ShiftSessionRequestCreate) error
 	UpdateShiftSession(id int, input request.ShiftSessionRequestUpdate) error
 	ChangeStatusShiftSession(id int) error
+	GetShiftSessionV2(id int) (response.ShiftSessionResponsev2, error)
 }
 
 type shiftsessionservice struct {
@@ -163,4 +165,97 @@ func (s *shiftsessionservice) ChangeStatusShiftSession(id int) error {
 		return errors.New("shift not found")
 	}
 	return nil
+}
+
+func (s *shiftsessionservice) GetShiftSessionV2(id int) (response.ShiftSessionResponsev2, error) {
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return response.ShiftSessionResponsev2{}, tx.Error
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	now := time.Now()
+	currentDate := now.Format("2006-01-02")
+	dayOfWeek := (int(now.Weekday())+6)%7 + 1
+	var user model.User
+	if err := tx.First(&user, id).Error; err != nil {
+		tx.Rollback()
+		return response.ShiftSessionResponsev2{}, err
+	}
+	var shiftpattern model.ShiftPattern
+	if err := tx.Where("employee_id = ? AND day_of_week_id = ?", user.EmployeeID, dayOfWeek).First(&shiftpattern).Error; err != nil {
+		tx.Rollback()
+		return response.ShiftSessionResponsev2{}, err
+	}
+
+	if shiftpattern.Isdayoff {
+		tx.Commit()
+		return response.ShiftSessionResponsev2{ShowCheckIn: false, ShowCheckOut: false}, nil
+	}
+
+	var attendancelog model.AttendanceLog
+	attendanceErr := tx.Where("employee_id = ? AND check_date = ?", user.EmployeeID, currentDate).
+		Order("id DESC").
+		First(&attendancelog).Error
+
+	var session model.ShiftSession
+	var shiftOrder int
+	var showCheckIn, showCheckOut bool
+
+	if attendanceErr != nil {
+
+		if err := tx.Where("shift_id = ?", shiftpattern.ShiftID).
+			Order("shift_order ASC").
+			First(&session).Error; err != nil {
+			tx.Rollback()
+			return response.ShiftSessionResponsev2{}, err
+		}
+		shiftOrder = session.ShiftOrder
+		showCheckIn = true
+		showCheckOut = false
+	} else {
+
+		if attendancelog.StatusAttendanceLogID == 1 {
+
+			if err := tx.Where("shift_id = ? AND shift_order = ?", shiftpattern.ShiftID, attendancelog.ShiftSessionOrder).
+				First(&session).Error; err != nil {
+				tx.Rollback()
+				return response.ShiftSessionResponsev2{}, err
+			}
+			shiftOrder = session.ShiftOrder
+			showCheckIn = false
+			showCheckOut = true
+		} else {
+
+			shiftOrder = attendancelog.ShiftSessionOrder + 1
+
+			if err := tx.Where("shift_id = ? AND shift_order = ?", shiftpattern.ShiftID, shiftOrder).
+				First(&session).Error; err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					tx.Commit()
+					return response.ShiftSessionResponsev2{ShowCheckIn: false, ShowCheckOut: false}, nil
+				}
+				tx.Rollback()
+				return response.ShiftSessionResponsev2{}, err
+			}
+			showCheckIn = true
+			showCheckOut = false
+		}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return response.ShiftSessionResponsev2{}, err
+	}
+
+	return response.ShiftSessionResponsev2{
+		StartTime:    session.StartTime,
+		EndTime:      session.EndTime,
+		ShowCheckIn:  showCheckIn,
+		ShowCheckOut: showCheckOut,
+	}, nil
 }

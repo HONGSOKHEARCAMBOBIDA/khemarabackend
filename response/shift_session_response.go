@@ -12,3 +12,10 @@ type ShiftSessionResponse struct {
 	EndTime    string `json:"end_time"`
 	Isactive   bool   `json:"is_active" gorm:"column:is_active"`
 }
+
+type ShiftSessionResponsev2 struct {
+	StartTime    string `json:"start_time"`
+	EndTime      string `json:"end_time"`
+	ShowCheckIn  bool   `json:"show_check_in"`
+	ShowCheckOut bool   `json:"show_check_out"`
+}

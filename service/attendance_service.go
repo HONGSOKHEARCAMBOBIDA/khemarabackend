@@ -13,8 +13,8 @@ import (
 )
 
 type AttendanceService interface {
-	CheckIn(input request.LocationRequest) error
-	CheckOut(input request.LocationRequest) error
+	CheckIn(id int, input request.LocationRequest) error
+	CheckOut(id int, input request.LocationRequest) error
 }
 
 type attendanceservice struct {
@@ -27,7 +27,7 @@ func NewAttendanceService() AttendanceService {
 	}
 }
 
-func (s *attendanceservice) CheckIn(input request.LocationRequest) error {
+func (s *attendanceservice) CheckIn(id int, input request.LocationRequest) error {
 	tx := s.db.Begin()
 	if tx.Error != nil {
 		return tx.Error
@@ -43,9 +43,18 @@ func (s *attendanceservice) CheckIn(input request.LocationRequest) error {
 	currentDate := now.Format("2006-01-02")
 
 	dayOfWeek := (int(now.Weekday())+6)%7 + 1
-
+	var user model.User
+	if err := tx.First(&user, id).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+	var branch model.Branch
+	if err := tx.First(&branch, user.BranchID).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
 	var shiftpattern model.ShiftPattern
-	if err := tx.Where("employee_id = ? AND day_of_week_id = ?", input.EmployeeID, dayOfWeek).
+	if err := tx.Where("employee_id = ? AND day_of_week_id = ?", user.EmployeeID, dayOfWeek).
 		First(&shiftpattern).Error; err != nil {
 		tx.Rollback()
 		return err
@@ -56,12 +65,12 @@ func (s *attendanceservice) CheckIn(input request.LocationRequest) error {
 		return nil
 	}
 
-	branchLat, err := strconv.ParseFloat(input.BranchLatitude, 64)
+	branchLat, err := strconv.ParseFloat(branch.Latitude, 64)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	branchLng, err := strconv.ParseFloat(input.BranchLongitude, 64)
+	branchLng, err := strconv.ParseFloat(branch.Longitude, 64)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -81,7 +90,7 @@ func (s *attendanceservice) CheckIn(input request.LocationRequest) error {
 	inzone := distance <= float64(input.BranchRadius)
 
 	var attendancelog model.AttendanceLog
-	err = tx.Where("employee_id = ? AND check_date = ?", input.EmployeeID, currentDate).
+	err = tx.Where("employee_id = ? AND check_date = ?", user.EmployeeID, currentDate).
 		Order("id DESC").
 		First(&attendancelog).Error
 
@@ -119,7 +128,7 @@ func (s *attendanceservice) CheckIn(input request.LocationRequest) error {
 	}
 
 	newLog := model.AttendanceLog{
-		EmployeeID:            input.EmployeeID,
+		EmployeeID:            user.EmployeeID,
 		CheckDate:             currentDate,
 		Note:                  "",
 		BranchID:              input.BranchID,
@@ -162,7 +171,7 @@ func (s *attendanceservice) CheckIn(input request.LocationRequest) error {
 	return tx.Commit().Error
 }
 
-func (s *attendanceservice) CheckOut(input request.LocationRequest) error {
+func (s *attendanceservice) CheckOut(id int, input request.LocationRequest) error {
 	tx := s.db.Begin()
 	if tx.Error != nil {
 		return tx.Error
@@ -176,9 +185,13 @@ func (s *attendanceservice) CheckOut(input request.LocationRequest) error {
 	now := time.Now()
 	dayOfWeek := int(now.Weekday())
 	dayOfWeek = (dayOfWeek+6)%7 + 1
-
+	var user model.User
+	if err := tx.First(&user, id).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
 	var shiftpattern model.ShiftPattern
-	if err := tx.Where("employee_id = ? AND day_of_week_id = ?", input.EmployeeID, dayOfWeek).
+	if err := tx.Where("employee_id = ? AND day_of_week_id = ?", user.EmployeeID, dayOfWeek).
 		First(&shiftpattern).Error; err != nil {
 		tx.Rollback()
 		return err
@@ -190,7 +203,7 @@ func (s *attendanceservice) CheckOut(input request.LocationRequest) error {
 	}
 
 	var attendancelog model.AttendanceLog
-	err := tx.Where("employee_id =? AND status_attendance_log_id =?", input.EmployeeID, 1).Order("id DESC").First(&attendancelog).Error
+	err := tx.Where("employee_id =? AND status_attendance_log_id =?", user.EmployeeID, 1).Order("id DESC").First(&attendancelog).Error
 	if err != nil {
 		tx.Rollback()
 		return err

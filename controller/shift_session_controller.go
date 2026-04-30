@@ -2,6 +2,7 @@ package controller
 
 import (
 	"mysql/constant/share"
+	"mysql/helper"
 	"mysql/request"
 	"mysql/service"
 	"net/http"
@@ -88,4 +89,18 @@ func (cr *ShiftSessionController) ChangeStatusShiftSession(c *gin.Context) {
 		return
 	}
 	share.ResponseSuccess(c, http.StatusOK, "shift session update status")
+}
+
+func (cr *ShiftSessionController) GetShiftSessionV2(c *gin.Context) {
+	id, ok := helper.GetUserID(c)
+	if !ok {
+		share.ResponseError(c, http.StatusUnauthorized, "please login")
+		return
+	}
+	data, err := cr.service.GetShiftSessionV2(id)
+	if err != nil {
+		share.ResponseError(c, http.StatusNotFound, err.Error())
+		return
+	}
+	share.RespondDate(c, http.StatusOK, data)
 }
