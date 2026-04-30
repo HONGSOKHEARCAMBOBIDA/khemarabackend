@@ -131,7 +131,7 @@ func (s *attendanceservice) CheckIn(id int, input request.LocationRequest) error
 		EmployeeID:            user.EmployeeID,
 		CheckDate:             currentDate,
 		Note:                  "",
-		BranchID:              input.BranchID,
+		BranchID:              int(branch.ID),
 		StatusAttendanceLogID: 1,
 		ShiftSessionOrder:     shiftOrder,
 	}
@@ -190,6 +190,11 @@ func (s *attendanceservice) CheckOut(id int, input request.LocationRequest) erro
 		tx.Rollback()
 		return err
 	}
+	var branch model.Branch
+	if err := tx.First(&branch, user.BranchID).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
 	var shiftpattern model.ShiftPattern
 	if err := tx.Where("employee_id = ? AND day_of_week_id = ?", user.EmployeeID, dayOfWeek).
 		First(&shiftpattern).Error; err != nil {
@@ -218,12 +223,12 @@ func (s *attendanceservice) CheckOut(id int, input request.LocationRequest) erro
 			tx.Rollback()
 			return err
 		}
-		lat, err := strconv.ParseFloat(input.BranchLatitude, 64)
+		lat, err := strconv.ParseFloat(branch.Latitude, 64)
 		if err != nil {
 			tx.Rollback()
 			return err
 		}
-		log, err := strconv.ParseFloat(input.BranchLongitude, 64)
+		log, err := strconv.ParseFloat(branch.Longitude, 64)
 		if err != nil {
 			tx.Rollback()
 			return err

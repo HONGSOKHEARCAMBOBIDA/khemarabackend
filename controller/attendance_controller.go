@@ -2,6 +2,7 @@ package controller
 
 import (
 	"mysql/constant/share"
+	"mysql/helper"
 	"mysql/request"
 	"mysql/service"
 	"net/http"
@@ -25,7 +26,12 @@ func (cr *AttendanceController) CheckIn(c *gin.Context) {
 		share.ResponseError(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	if err := cr.service.CheckIn(input); err != nil {
+	userID, ok := helper.GetUserID(c)
+	if !ok {
+		share.ResponseError(c, http.StatusUnauthorized, "Please Login")
+		return
+	}
+	if err := cr.service.CheckIn(userID, input); err != nil {
 		share.ResponseError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -38,7 +44,12 @@ func (cr *AttendanceController) CheckOut(c *gin.Context) {
 		share.ResponseError(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	if err := cr.service.CheckOut(input); err != nil {
+	userID, ok := helper.GetUserID(c)
+	if !ok {
+		share.ResponseError(c, http.StatusUnauthorized, "Please Login")
+		return
+	}
+	if err := cr.service.CheckOut(userID, input); err != nil {
 		share.ResponseError(c, http.StatusInternalServerError, err.Error())
 		return
 	}

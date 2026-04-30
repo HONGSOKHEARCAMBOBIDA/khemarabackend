@@ -18,4 +18,6 @@ type ShiftSessionResponsev2 struct {
 	EndTime      string `json:"end_time"`
 	ShowCheckIn  bool   `json:"show_check_in"`
 	ShowCheckOut bool   `json:"show_check_out"`
+	IsLate       int    `json:"is_late"`
+	IsLeftEarly  int    `json:"is_left_early"`
 }
