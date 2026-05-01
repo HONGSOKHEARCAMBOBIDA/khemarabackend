@@ -170,7 +170,7 @@ func (s *shiftsessionservice) ChangeStatusShiftSession(id int) error {
 func (s *shiftsessionservice) GetShiftSessionV2(id int) (response.ShiftSessionResponsev2, error) {
 	tx := s.db.Begin()
 	if tx.Error != nil {
-		return response.ShiftSessionResponsev2{}, tx.Error
+		return response.ShiftSessionResponsev2{StartTime: "គ្មានម៉ោងធ្វេីការ"}, tx.Error
 	}
 	defer func() {
 		if r := recover(); r != nil {
@@ -185,19 +185,19 @@ func (s *shiftsessionservice) GetShiftSessionV2(id int) (response.ShiftSessionRe
 	var user model.User
 	if err := tx.First(&user, id).Error; err != nil {
 		tx.Rollback()
-		return response.ShiftSessionResponsev2{}, err
+		return response.ShiftSessionResponsev2{StartTime: "គ្មានម៉ោងធ្វេីការ"}, err
 	}
 
 	var shiftpattern model.ShiftPattern
 	if err := tx.Where("employee_id = ? AND day_of_week_id = ?", user.EmployeeID, dayOfWeek).
 		First(&shiftpattern).Error; err != nil {
 		tx.Rollback()
-		return response.ShiftSessionResponsev2{}, err
+		return response.ShiftSessionResponsev2{StartTime: "គ្មានម៉ោងធ្វេីការ"}, err
 	}
 
 	if shiftpattern.Isdayoff {
 		tx.Commit()
-		return response.ShiftSessionResponsev2{ShowCheckIn: false, ShowCheckOut: false}, nil
+		return response.ShiftSessionResponsev2{ShowCheckIn: false, ShowCheckOut: false, StartTime: "គ្មានម៉ោងធ្វេីការ"}, nil
 	}
 
 	var attendancelog model.AttendanceLog
@@ -209,43 +209,42 @@ func (s *shiftsessionservice) GetShiftSessionV2(id int) (response.ShiftSessionRe
 	var showCheckIn, showCheckOut bool
 
 	if attendanceErr != nil {
-		// No log today — show check-in for first session
+
 		if err := tx.Where("shift_id = ?", shiftpattern.ShiftID).
 			Order("shift_order ASC").
 			First(&session).Error; err != nil {
 			tx.Rollback()
-			return response.ShiftSessionResponsev2{}, err
+			return response.ShiftSessionResponsev2{StartTime: "គ្មានម៉ោងធ្វេីការ"}, err
 		}
 		showCheckIn = true
 		showCheckOut = false
 
 	} else if attendancelog.StatusAttendanceLogID == 1 {
-		// Checked in but not yet checked out
+
 		if err := tx.Where("shift_id = ? AND shift_order = ?", shiftpattern.ShiftID, attendancelog.ShiftSessionOrder).
 			First(&session).Error; err != nil {
 			tx.Rollback()
-			return response.ShiftSessionResponsev2{}, err
+			return response.ShiftSessionResponsev2{StartTime: "គ្មានម៉ោងធ្វេីការ"}, err
 		}
 		showCheckIn = false
 		showCheckOut = true
 
 	} else {
-		// Last session completed — advance to next session
+
 		nextOrder := attendancelog.ShiftSessionOrder + 1
 		if err := tx.Where("shift_id = ? AND shift_order = ?", shiftpattern.ShiftID, nextOrder).
 			First(&session).Error; err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				tx.Commit()
-				return response.ShiftSessionResponsev2{ShowCheckIn: false, ShowCheckOut: false}, nil
+				return response.ShiftSessionResponsev2{ShowCheckIn: false, ShowCheckOut: false, StartTime: "គ្មានម៉ោងធ្វេីការ"}, nil
 			}
 			tx.Rollback()
-			return response.ShiftSessionResponsev2{}, err
+			return response.ShiftSessionResponsev2{StartTime: "គ្មានម៉ោងធ្វេីការ"}, err
 		}
 		showCheckIn = true
 		showCheckOut = false
 	}
 
-	// ✅ Parse times AFTER session is populated from DB
 	startTime, _ := time.Parse("15:04:05", session.StartTime)
 	endTime, _ := time.Parse("15:04:05", session.EndTime)
 
@@ -253,7 +252,7 @@ func (s *shiftsessionservice) GetShiftSessionV2(id int) (response.ShiftSessionRe
 	isLeftEarly := 0
 
 	if showCheckIn {
-		// Late if checking in after the session start time
+
 		if now.Hour() > startTime.Hour() ||
 			(now.Hour() == startTime.Hour() && now.Minute() > startTime.Minute()) {
 			isLate = 1
@@ -261,7 +260,7 @@ func (s *shiftsessionservice) GetShiftSessionV2(id int) (response.ShiftSessionRe
 	}
 
 	if showCheckOut {
-		// Left early if checking out before the session end time
+
 		shiftEnd := time.Date(now.Year(), now.Month(), now.Day(),
 			endTime.Hour(), endTime.Minute(), endTime.Second(), 0, now.Location())
 		if now.Before(shiftEnd) {
@@ -270,7 +269,7 @@ func (s *shiftsessionservice) GetShiftSessionV2(id int) (response.ShiftSessionRe
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		return response.ShiftSessionResponsev2{}, err
+		return response.ShiftSessionResponsev2{StartTime: "គ្មានម៉ោងធ្វេីការ"}, err
 	}
 
 	return response.ShiftSessionResponsev2{

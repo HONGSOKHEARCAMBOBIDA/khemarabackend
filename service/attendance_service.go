@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"mysql/config"
+	"mysql/helper"
 	"mysql/model"
 	"mysql/request"
 	"mysql/utils"
@@ -167,7 +168,42 @@ func (s *attendanceservice) CheckIn(id int, input request.LocationRequest) error
 			return err
 		}
 	}
+	var employee model.Employee
+	if err := tx.First(&employee, user.EmployeeID).Error; err != nil {
+		tx.Rollback()
+	}
+	workTime := fmt.Sprintf("%s - %s", session.StartTime, session.EndTime)
+	lateText := "⏰ ស្កែនទាន់ម៉ោង"
+	if isLate == 1 {
+		lateText = "🔴 ចូលធ្វេីការយឺត"
+	}
+	zoneText := "📍 ស្កែនក្នុងតំបន់ក្រុមហ៊ុន"
+	if !inzone {
+		zoneText = "⚠️ ស្កែនក្រៅតំបន់ក្រុមហ៊ុន"
+	}
+	message := fmt.Sprintf(
+		"🟢 <b>CHECK IN</b>\n\n"+
+			"👤 ឈ្មោះ: %s\n"+
+			"📲 ឈ្មោះអង់គ្លេស: %s\n"+
+			"ID: %s\n"+
+			"🏢 សាខា: %s\n"+
+			"🕒 ម៉ោងធ្វើការ: %s\n"+
+			"🕒 Check-in: %s\n"+
+			"%s\n"+
+			"%s\n"+
+			"មូលហេតុ: %s\n",
 
+		employee.NameKh,
+		employee.NameEn,
+		employee.Code,
+		branch.Name,
+		workTime,
+		now.Format("15:04:05"),
+		lateText,
+		zoneText,
+		input.Note,
+	)
+	go helper.SendTelegramMessage(message)
 	return tx.Commit().Error
 }
 
@@ -275,6 +311,45 @@ func (s *attendanceservice) CheckOut(id int, input request.LocationRequest) erro
 			tx.Rollback()
 			return err
 		}
+		var employee model.Employee
+		if err := tx.First(&employee, user.EmployeeID).Error; err != nil {
+			tx.Rollback()
+		}
+		workTime := fmt.Sprintf("%s - %s", session.StartTime, session.EndTime)
+
+		earlyText := "⏰ ស្កែនត្រូវម៉ោង"
+		if isLeftEarly == 1 {
+			earlyText = "🔴 ចេញមុនម៉ោងកំណត់"
+		}
+
+		zoneText := "📍 ស្កែនក្នុងតំបន់ក្រុមហ៊ុន"
+		if !inzone {
+			zoneText = "⚠️ ស្កែនក្រៅតំបន់ក្រុមហ៊ុន"
+		}
+
+		message := fmt.Sprintf(
+			"🟢 <b>CHECK OUT</b>\n\n"+
+				"👤 ឈ្មោះ: %s\n"+
+				"📲 ឈ្មោះអង់គ្លេស: %s\n"+
+				"ID: %s\n"+
+				"🏢 សាខា: %s\n"+
+				"🕒 ម៉ោងធ្វើការ: %s\n"+
+				"🕒 Check-out: %s\n"+
+				"%s\n"+
+				"%s\n",
+
+			employee.NameKh,
+			employee.NameEn,
+			employee.Code,
+			branch.Name,
+			workTime,
+			now.Format("15:04:05"),
+			earlyText,
+			zoneText,
+		)
+
+		go helper.SendTelegramMessage(message)
 	}
+
 	return tx.Commit().Error
 }

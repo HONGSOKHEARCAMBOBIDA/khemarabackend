@@ -2,6 +2,7 @@ package model
 
 type Employee struct {
 	ID             int    `json:"id"`
+	Code           string `json:"code" gorm:"column:code"`
 	NameEn         string `json:"name_en"`
 	NameKh         string `json:"name_kh"`
 	NationalID     string `json:"national_id_number" gorm:"column:national_id_number"`

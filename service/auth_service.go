@@ -164,6 +164,7 @@ func (s *authservice) Register(id int, input request.RegisterRequest, c *gin.Con
 	uploadedFiles = append(uploadedFiles, educationPaths...)
 
 	employee := model.Employee{
+		Code:           utils.GenerateEmployeeCode(),
 		NameEn:         input.NameEn,
 		NameKh:         input.NameKh,
 		NationalID:     input.NationalID,
