@@ -6,5 +6,5 @@ import (
 )
 
 func GenerateEmployeeCode() string {
-	return fmt.Sprintf("KHM-%d", time.Now().UnixNano())
+	return fmt.Sprintf("KHM-%x", time.Now().UnixNano()>>20)
 }

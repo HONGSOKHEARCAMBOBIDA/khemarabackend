@@ -5,6 +5,7 @@ import (
 	"mysql/config"
 	"mysql/model"
 	"mysql/request"
+	"mysql/response"
 	"mysql/utils"
 	"strconv"
 	"time"
@@ -15,6 +16,7 @@ import (
 type AttendanceService interface {
 	CheckIn(id int, input request.LocationRequest) error
 	CheckOut(id int, input request.LocationRequest) error
+	GetAttendance(filter map[string]string, pagination request.Pagination) ([]response.AttendanceResponse, *model.PaginationMetadata, error)
 }
 
 type attendanceservice struct {
@@ -401,4 +403,173 @@ func (s *attendanceservice) CheckOut(id int, input request.LocationRequest) erro
 	}
 
 	return tx.Commit().Error
+}
+
+func (s *attendanceservice) GetAttendance(filter map[string]string, pagination request.Pagination) ([]response.AttendanceResponse, *model.PaginationMetadata, error) {
+	var attendances []response.AttendanceResponse
+	var totalCount int64
+	offset := (pagination.Page - 1) * pagination.PageSize
+
+	query := s.db.Table("employees e").
+		Select(`
+			e.id AS employee_id,
+			e.code AS employee_code,
+			e.name_en AS employee_name_en,
+			e.name_kh AS employee_name_kh,
+			e.gender AS gender,
+			p.id AS position_id,
+			p.display_name AS position_display_name,
+			d.id AS department_id,
+			d.display_name AS department_display_name,
+			o.id AS office_id,
+			o.name AS office_name,
+			ep.profile_image AS profile
+		`).
+		Joins("INNER JOIN attendance_logs alog ON alog.employee_id = e.id").
+		Joins("LEFT JOIN positions p ON p.id = e.position_id").
+		Joins("LEFT JOIN departments d ON d.id = p.department_id").
+		Joins("LEFT JOIN offices o ON o.id = e.office_id").
+		Joins("LEFT JOIN employee_profiles ep ON ep.employee_id = e.id").
+		Group("e.id, e.code, e.name_en, e.name_kh, e.gender, p.id, p.display_name, d.id, d.display_name, o.id, o.name, ep.profile_image")
+
+	checkDateFrom := filter["check_date_from"]
+	checkDateTo := filter["check_date_to"]
+
+	boolFilterMap := map[string]string{
+		"check_in_early":     "check_in_early",
+		"check_in_on_time":   "check_in_on_time",
+		"is_late":            "is_late",
+		"is_left_early":      "is_left_early",
+		"check_out_on_time":  "check_out_on_time",
+		"check_out_overtime": "check_out_overtime",
+	}
+
+	for key, value := range filter {
+		if value == "" {
+			continue
+		}
+		switch key {
+		case "name":
+			query = query.Where("e.name_kh LIKE ? OR e.name_en LIKE ?", "%"+value+"%", "%"+value+"%")
+		case "department_id":
+			query = query.Where("d.id = ?", value)
+		case "employee_id":
+			query = query.Where("e.id = ?", value)
+		case "office_id":
+			query = query.Where("e.office_id = ?", value)
+
+		case "check_date_from":
+			query = query.Where("alog.check_date >= ?", value)
+		case "check_date_to":
+			query = query.Where("alog.check_date <= ?", value)
+
+		case "check_in_early", "check_in_on_time", "is_late",
+			"is_left_early", "check_out_on_time", "check_out_overtime":
+			col := boolFilterMap[key]
+			query = query.Where(fmt.Sprintf(`
+				EXISTS (
+					SELECT 1 FROM attendance_records ar
+					JOIN attendance_logs al2 ON al2.id = ar.attendance_log_id
+					WHERE al2.employee_id = e.id
+					AND ar.%s = ?
+				)`, col), value)
+		}
+	}
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, nil, err
+	}
+
+	if err := query.Offset(offset).Limit(pagination.PageSize).Scan(&attendances).Error; err != nil {
+		return nil, nil, err
+	}
+
+	for i := range attendances {
+		var attendancelogs []response.AttendanceLogResponse
+
+		logQuery := s.db.Table("attendance_logs al").
+			Select(`
+				al.id AS id,
+				al.check_date AS check_date,
+				b.id AS branch_id,
+				b.name AS branch_name,
+				st.id AS status_attendance_log_id,
+				st.name AS status_attendance_log_name
+			`).
+			Joins("LEFT JOIN branches b ON b.id = al.branch_id").
+			Joins("LEFT JOIN status_attendance_logs st ON st.id = al.status_attendance_log_id").
+			Where("al.employee_id = ?", attendances[i].EmployeeID)
+
+		if checkDateFrom != "" {
+			logQuery = logQuery.Where("al.check_date >= ?", checkDateFrom)
+		}
+		if checkDateTo != "" {
+			logQuery = logQuery.Where("al.check_date <= ?", checkDateTo)
+		}
+
+		for key, col := range boolFilterMap {
+			if val := filter[key]; val != "" {
+				logQuery = logQuery.Where(fmt.Sprintf(`
+					EXISTS (
+						SELECT 1 FROM attendance_records ar
+						WHERE ar.attendance_log_id = al.id
+						AND ar.%s = ?
+					)`, col), val)
+			}
+		}
+
+		if err := logQuery.Scan(&attendancelogs).Error; err != nil {
+			return nil, nil, err
+		}
+
+		for j := range attendancelogs {
+			var attendancerecords []response.AttendanceRecordResponse
+
+			recordQuery := s.db.Table("attendance_records ar").
+				Select(`
+					ar.id AS id,
+					s.id AS shift_session_id,
+					s.start_time AS start_time,
+					s.end_time AS end_time,
+					s.shift_order AS shift_order,
+					ar.check_time AS check_time,
+					ar.check_in_early AS check_in_early,
+					ar.check_in_on_time AS check_in_on_time,
+					ar.is_late AS is_late,
+					ar.is_left_early AS is_left_early,
+					ar.check_out_on_time AS check_out_on_time,
+					ar.check_out_overtime AS check_out_overtime,
+					ar.latitude AS latitude,
+					ar.longitude AS longitude,
+					ar.note AS note,
+					ar.iszonecheckin AS iszonecheckin,
+					ar.type AS type
+				`).
+				Joins("LEFT JOIN shift_sessions s ON s.id = ar.shift_session_id").
+				Where("ar.attendance_log_id = ?", attendancelogs[j].ID)
+
+			for key, col := range boolFilterMap {
+				if val := filter[key]; val != "" {
+					recordQuery = recordQuery.Where(fmt.Sprintf("ar.%s = ?", col), val)
+				}
+			}
+
+			if err := recordQuery.Scan(&attendancerecords).Error; err != nil {
+				return nil, nil, err
+			}
+
+			attendancelogs[j].AttendanceRecordResponse = attendancerecords
+		}
+
+		attendances[i].AttendanceLogResponse = attendancelogs
+	}
+
+	paginationMeta := &model.PaginationMetadata{
+		CurrentPage: pagination.Page,
+		PageSize:    pagination.PageSize,
+		TotalCount:  totalCount,
+		TotalPages:  (int(totalCount) + pagination.PageSize - 1) / pagination.PageSize,
+	}
+
+	return attendances, paginationMeta, nil
 }

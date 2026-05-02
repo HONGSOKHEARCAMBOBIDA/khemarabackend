@@ -7,5 +7,5 @@ type AttendanceLogResponse struct {
 	BranchName               string                     `json:"branch_name"`
 	StatusAttendanceLogID    int                        `json:"status_attendance_log_id"`
 	StatusAttendanceLogName  string                     `json:"status_attendance_log_name"`
-	AttendanceRecordResponse []AttendanceRecordResponse `json:"attendancerecordresponse"`
+	AttendanceRecordResponse []AttendanceRecordResponse `json:"attendancerecordresponse" gorm:"-"`
 }
