@@ -77,6 +77,8 @@ func (cr *AttendanceController) GetAttendance(c *gin.Context) {
 		"is_left_early":      c.Query("is_left_early"),
 		"check_out_on_time":  c.Query("check_out_on_time"),
 		"check_out_overtime": c.Query("check_out_overtime"),
+		"check_date_from":    c.Query("check_date_from"),
+		"check_date_to":      c.Query("check_date_to"),
 	}
 	attendance, metadata, err := cr.service.GetAttendance(filter, request.Pagination{
 		Page:     page,
