@@ -434,7 +434,6 @@ func (s *attendanceservice) GetAttendance(filter map[string]string, pagination r
 
 	checkDateFrom := filter["check_date_from"]
 	checkDateTo := filter["check_date_to"]
-
 	boolFilterMap := map[string]string{
 		"check_in_early":     "check_in_early",
 		"check_in_on_time":   "check_in_on_time",

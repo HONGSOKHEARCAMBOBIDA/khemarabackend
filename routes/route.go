@@ -35,6 +35,7 @@ func SetupRoutes(r *gin.Engine) {
 	employeecontroller := controller.NewEmployeeController()
 	statusattendance := controller.NewStatusAttendanceLogController()
 	attendancecontroller := controller.NewAttendanceController()
+	leavetypecontroller := controller.NewLeaveTypeController()
 	r.Static("/profileimage", "./public/profileimage")
 	r.Static("/qrcodeimage", "./public/qrcodeimage")
 	r.Static("/educationimage", "./public/educationimage")
@@ -162,5 +163,8 @@ func SetupRoutes(r *gin.Engine) {
 		auth.POST(route.AddAttendance, middleware.PermissionMiddleware(permission.AddAttendance), attendancecontroller.CheckIn)
 		auth.POST(route.CheckOut, middleware.PermissionMiddleware(permission.AddAttendance), attendancecontroller.CheckOut)
 		auth.GET(route.ViewAttendance, middleware.PermissionMiddleware(permission.ViewAttendance), attendancecontroller.GetAttendance)
+
+		// LeaveType
+		auth.GET(route.ViewLeaveType, middleware.PermissionMiddleware(permission.ViewLeaveType), leavetypecontroller.GetLeaveType)
 	}
 }

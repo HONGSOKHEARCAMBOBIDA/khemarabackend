@@ -106,4 +106,7 @@ const (
 	// Attendance
 	AddAttendance  = "add.attendance"
 	ViewAttendance = "view.attendance"
+
+	// LeaveType
+	ViewLeaveType = "view.leave.type"
 )

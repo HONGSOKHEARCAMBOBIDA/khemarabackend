@@ -125,4 +125,7 @@ const (
 	AddAttendance  = "check.in"
 	ViewAttendance = "view.attendance"
 	CheckOut       = "check.out"
+
+	// LeaveType
+	ViewLeaveType = "view.leave.type"
 )
