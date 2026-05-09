@@ -109,4 +109,13 @@ const (
 
 	// LeaveType
 	ViewLeaveType = "view.leave.type"
+
+	// LeaveDurationUnit
+	ViewLeaveDurationUnit = "view.leave.ducation.unit"
+
+	// Leave
+	AddLeave     = "add.leave"
+	ViewLeave    = "view.leave"
+	EditLeave    = "edit.leave"
+	ApproveLeave = "approve.leave"
 )

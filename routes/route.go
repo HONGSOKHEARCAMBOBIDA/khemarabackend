@@ -36,6 +36,8 @@ func SetupRoutes(r *gin.Engine) {
 	statusattendance := controller.NewStatusAttendanceLogController()
 	attendancecontroller := controller.NewAttendanceController()
 	leavetypecontroller := controller.NewLeaveTypeController()
+	leavedurationunitcontroller := controller.NewLeaveDurationController()
+	leavecontroller := controller.NewLeaveController()
 	r.Static("/profileimage", "./public/profileimage")
 	r.Static("/qrcodeimage", "./public/qrcodeimage")
 	r.Static("/educationimage", "./public/educationimage")
@@ -166,5 +168,11 @@ func SetupRoutes(r *gin.Engine) {
 
 		// LeaveType
 		auth.GET(route.ViewLeaveType, middleware.PermissionMiddleware(permission.ViewLeaveType), leavetypecontroller.GetLeaveType)
+
+		// LeaveDuration
+		auth.GET(route.ViewLeaveDurationUnit, middleware.PermissionMiddleware(permission.ViewLeaveDurationUnit), leavedurationunitcontroller.GetLeaveDuration)
+
+		// Leave
+		auth.POST(route.AddLeave, middleware.PermissionMiddleware(permission.AddLeave), leavecontroller.CreateLeave)
 	}
 }

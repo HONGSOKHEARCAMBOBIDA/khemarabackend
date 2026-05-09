@@ -38,11 +38,11 @@ func (s *authservice) GetUserByBranch(id int) ([]response.UserResponse, error) {
 	var user []response.UserResponse
 	db := s.db.Table("users u").
 		Select(`
-		u.id AS id,
+		e.id AS id,
 		e.name_kh AS name
 	`).
 		Joins("LEFT JOIN employees e ON e.id = u.employee_id").Where("u.branch_id = ?", id)
-	if err := db.Order("u.id DESC").Scan(&user).Error; err != nil {
+	if err := db.Order("e.id DESC").Scan(&user).Error; err != nil {
 		return nil, err
 	}
 	return user, nil

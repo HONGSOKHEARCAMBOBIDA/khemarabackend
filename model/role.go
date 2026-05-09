@@ -5,5 +5,6 @@ type Role struct {
 	Name        string       `json:"name"`
 	DisPlayName string       `json:"display_name" gorm:"column:display_name"`
 	IsActive    bool         `json:"is_active"`
+	Level       int          `json:"level"`
 	Permissions []Permission `gorm:"many2many:role_has_permissions"`
 }

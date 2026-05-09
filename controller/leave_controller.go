@@ -1,0 +1,66 @@
+package controller
+
+import (
+	"mysql/constant/share"
+	"mysql/helper"
+	"mysql/request"
+	"mysql/service"
+	"net/http"
+	"strconv"
+
+	"github.com/gin-gonic/gin"
+)
+
+type LeaveController struct {
+	service service.LeaveService
+}
+
+func NewLeaveController() LeaveController {
+	return LeaveController{
+		service: service.NewLeaveService(),
+	}
+}
+
+func (cr *LeaveController) CreateLeave(c *gin.Context) {
+	var input request.LeaveCreate
+	if err := c.ShouldBind(&input); err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	userID, ok := helper.GetUserID(c)
+	if !ok {
+		share.ResponseError(c, http.StatusUnauthorized, "login please")
+		return
+	}
+	if err := cr.service.CreateLeave(userID, input); err != nil {
+		share.ResponseError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	share.ResponseSuccess(c, http.StatusOK, "leave created")
+}
+
+func (cr *LeaveController) GetLeave(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 10
+	}
+	userID,ok := helper.GetUserID(c)
+	if !ok{
+		share.ResponseError(c,http.StatusUnauthorized,"please login")
+		return
+	}
+	filter := map[string]string{
+		"employee_id": c.Query("employee_id"),
+		"branch_id": c.Query("branch_id"),
+		"office_id": c.Query("office_id"),
+		"status_leave_id": c.Query("status_leave_id"),
+		"leave_type_id": c.Query("leave_type_id"),
+		"start_date": c.Query("start_date"),
+		"end_date": c.Query("end_date"),
+		"search": c.Query("search")
+	}
+}
