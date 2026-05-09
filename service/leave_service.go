@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"mysql/config"
+	"mysql/helper"
 	"mysql/model"
 	"mysql/request"
 	"mysql/response"
@@ -131,8 +132,8 @@ func (s *leaveservice) GetLeave(id int, filters map[string]string, pagination re
 			ldn.id                  AS duration_unit_id,
 			ldn.code                AS duration_unit_code,
 			ldn.name_en             AS duration_unit_name_en,
-			ldn.name_kh             AS duration_unit_name_kh,
-			ldn.to_minutes          AS duration_unit_tominute
+			ldn.name_km             AS duration_unit_name_kh,
+			ldn.to_minutes * ld.duration_value         AS duration_unit_tominute
 		`).
 		Joins("LEFT JOIN employees e ON e.id = l.employee_id").
 		Joins("LEFT JOIN positions p ON p.id = e.position_id").
@@ -232,6 +233,14 @@ func (s *leaveservice) GetLeave(id int, filters map[string]string, pagination re
 		Offset(offset).
 		Scan(&leaves).Error; err != nil {
 		return nil, nil, fmt.Errorf("failed to fetch leaves: %w", err)
+	}
+
+	for i := range leaves {
+		leaves[i].StartDate = helper.FormatDate(leaves[i].StartDate)
+		leaves[i].EndDate = helper.FormatDate(leaves[i].EndDate)
+		hours, display := helper.FormatDuration(leaves[i].DurationUnitToMinute)
+		leaves[i].DurationHour = hours
+		leaves[i].DurationDisplay = display
 	}
 
 	totalPages := int(totalCount) / pagination.PageSize

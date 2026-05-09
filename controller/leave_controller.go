@@ -48,19 +48,33 @@ func (cr *LeaveController) GetLeave(c *gin.Context) {
 	if pageSize < 1 || pageSize > 100 {
 		pageSize = 10
 	}
-	userID,ok := helper.GetUserID(c)
-	if !ok{
-		share.ResponseError(c,http.StatusUnauthorized,"please login")
+	userID, ok := helper.GetUserID(c)
+	if !ok {
+		share.ResponseError(c, http.StatusUnauthorized, "please login")
 		return
 	}
 	filter := map[string]string{
-		"employee_id": c.Query("employee_id"),
-		"branch_id": c.Query("branch_id"),
-		"office_id": c.Query("office_id"),
+		"employee_id":     c.Query("employee_id"),
+		"branch_id":       c.Query("branch_id"),
+		"office_id":       c.Query("office_id"),
 		"status_leave_id": c.Query("status_leave_id"),
-		"leave_type_id": c.Query("leave_type_id"),
-		"start_date": c.Query("start_date"),
-		"end_date": c.Query("end_date"),
-		"search": c.Query("search")
+		"leave_type_id":   c.Query("leave_type_id"),
+		"start_date":      c.Query("start_date"),
+		"end_date":        c.Query("end_date"),
+		"search":          c.Query("search"),
 	}
+
+	leave, metadata, err := cr.service.GetLeave(userID, filter, request.Pagination{
+		Page:     page,
+		PageSize: pageSize,
+	})
+	if err != nil {
+		share.ResponseError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success":    true,
+		"data":       leave,
+		"pagination": metadata,
+	})
 }
