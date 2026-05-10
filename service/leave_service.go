@@ -106,6 +106,7 @@ func (s *leaveservice) GetLeave(id int, filters map[string]string, pagination re
 		Select(`
 			l.id                    AS id,
 			e.id                    AS employee_id,
+			e.code					AS employee_code,
 			e.name_en               AS employee_name_en,
 			e.name_kh               AS employee_name_kh,
 			e.gender                AS employee_gender,

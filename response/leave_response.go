@@ -3,6 +3,7 @@ package response
 type LeaveResponse struct {
 	ID                   int     `json:"id"`
 	EmployeeID           int     `json:"employee_id"`
+	EmployeeCode         string  `json:"employee_code"`
 	EmployeeNameEn       string  `json:"employee_name_en"`
 	EmployeeNameKh       string  `json:"employee_name_kh"`
 	EmployeeGender       int     `json:"employee_gender"`
