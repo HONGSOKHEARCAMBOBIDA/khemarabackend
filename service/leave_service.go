@@ -105,6 +105,7 @@ func (s *leaveservice) GetLeave(id int, filters map[string]string, pagination re
 	query := s.db.Table("leaves l").
 		Select(`
 			l.id                    AS id,
+			u.contact 				AS employee_phone,
 			e.id                    AS employee_id,
 			e.code					AS employee_code,
 			e.name_en               AS employee_name_en,
@@ -146,6 +147,7 @@ func (s *leaveservice) GetLeave(id int, filters map[string]string, pagination re
 		Joins("LEFT JOIN leave_durations ld ON ld.leave_id = l.id").
 		Joins("LEFT JOIN leave_duration_units ldn ON ldn.id = ld.duration_unit_id").
 		Joins("LEFT JOIN employees ep ON ep.id = l.approve_by_id").
+		Joins("LEFT JOIN users u ON u.employee_id = e.id").
 		Order("l.id DESC")
 
 	if role.Level < 4 {
