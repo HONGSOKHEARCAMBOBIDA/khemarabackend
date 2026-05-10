@@ -118,4 +118,7 @@ const (
 	ViewLeave    = "view.leave"
 	EditLeave    = "edit.leave"
 	ApproveLeave = "approve.leave"
+
+	// StatusLeave
+	ViewStatusLeave = "view.status.leave"
 )

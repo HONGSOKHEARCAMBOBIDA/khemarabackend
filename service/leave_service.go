@@ -140,7 +140,7 @@ func (s *leaveservice) GetLeave(id int, filters map[string]string, pagination re
 		Joins("LEFT JOIN offices o ON o.id = e.office_id").
 		Joins("LEFT JOIN leave_types lt ON lt.id = l.leave_type_id").
 		Joins("LEFT JOIN deduct_types ddt ON ddt.id = lt.deduct_type_id").
-		Joins("LEFT JOIN status_leave stl ON stl.id = l.status_leave_id").
+		Joins("LEFT JOIN status_leaves stl ON stl.id = l.status_leave_id").
 		Joins("LEFT JOIN branches b ON b.id = l.branch_id").
 		Joins("LEFT JOIN leave_durations ld ON ld.leave_id = l.id").
 		Joins("LEFT JOIN leave_duration_units ldn ON ldn.id = ld.duration_unit_id").
@@ -158,7 +158,7 @@ func (s *leaveservice) GetLeave(id int, filters map[string]string, pagination re
 			query = query.Where("l.branch_id = ?", user.BranchID)
 
 		case 2:
-			// Sees branches explicitly assigned in user_branches
+
 			var branchIDs []int
 			if err := s.db.
 				Model(&model.UserBranch{}).
