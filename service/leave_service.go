@@ -52,6 +52,7 @@ func (s *leaveservice) CreateLeave(id int, input request.LeaveCreate) error {
 		LeaveTypeID:   input.LeaveTypeID,
 		StartDate:     input.StartDate,
 		EndDate:       input.EndDate,
+		BackDate:      input.BackDate,
 		Description:   input.Description,
 		StatusLeaveID: 1,
 		ApproveByID:   input.ApproveByID,
@@ -122,6 +123,7 @@ func (s *leaveservice) GetLeave(id int, filters map[string]string, pagination re
 			ddt.name                AS deduct_type_name,
 			l.start_date            AS start_date,
 			l.end_date              AS end_date,
+			l.back_date             AS back_date,
 			l.description           AS description,
 			stl.id                  AS status_leave_id,
 			stl.name                AS status_leave_name,
@@ -241,6 +243,7 @@ func (s *leaveservice) GetLeave(id int, filters map[string]string, pagination re
 	for i := range leaves {
 		leaves[i].StartDate = helper.FormatDate(leaves[i].StartDate)
 		leaves[i].EndDate = helper.FormatDate(leaves[i].EndDate)
+		leaves[i].BackDate = helper.FormatDate(leaves[i].BackDate)
 		hours, display := helper.FormatDuration(leaves[i].DurationUnitToMinute)
 		leaves[i].DurationHour = hours
 		leaves[i].DurationDisplay = display

@@ -19,6 +19,7 @@ type LeaveResponse struct {
 	DeductTypeName       string  `json:"deduct_type_name"`
 	StartDate            string  `json:"start_date"`
 	EndDate              string  `json:"end_date"`
+	BackDate             string  `json:"back_date"`
 	Desscription         string  `json:"description" gorm:"column:description"`
 	StatusLeaveID        int     `json:"status_leave_id"`
 	StatusLeaveName      string  `json:"status_leave_name"`
