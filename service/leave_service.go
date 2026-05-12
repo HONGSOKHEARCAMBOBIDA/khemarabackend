@@ -16,6 +16,7 @@ import (
 type LeaveService interface {
 	CreateLeave(id int, input request.LeaveCreate) error
 	GetLeave(id int, filters map[string]string, pagination request.Pagination) ([]response.LeaveResponse, *model.PaginationMetadata, error)
+	ApproveLeave(id int, input request.LeaveApproveRequest, userID int) error
 }
 
 type leaveservice struct {
@@ -262,4 +263,34 @@ func (s *leaveservice) GetLeave(id int, filters map[string]string, pagination re
 	}
 
 	return leaves, metadata, nil
+}
+
+func (s *leaveservice) ApproveLeave(
+	id int,
+	input request.LeaveApproveRequest,
+	userID int,
+) error {
+
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Model(&model.Leave{}).
+		Where("id = ?", id).
+		Updates(map[string]interface{}{
+			"status_leave_id": input.StatusLeave,
+			"approve_by_id":   userID,
+		}).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("leave cannot approve")
+	}
+
+	return tx.Commit().Error
 }

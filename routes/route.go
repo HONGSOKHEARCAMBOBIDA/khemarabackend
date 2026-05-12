@@ -176,6 +176,7 @@ func SetupRoutes(r *gin.Engine) {
 		// Leave
 		auth.POST(route.AddLeave, middleware.PermissionMiddleware(permission.AddLeave), leavecontroller.CreateLeave)
 		auth.GET(route.ViewLeave, middleware.PermissionMiddleware(permission.ViewLeave), leavecontroller.GetLeave)
+		auth.PUT(route.ApproveLeave, middleware.PermissionMiddleware(permission.ApproveLeave), leavecontroller.ApproveLeave)
 
 		// StatusLeave
 		auth.GET(route.ViewStatusLeave, middleware.PermissionMiddleware(permission.ViewStatusLeave), statusleavecontroller.GetStatusLeave)

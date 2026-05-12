@@ -78,3 +78,27 @@ func (cr *LeaveController) GetLeave(c *gin.Context) {
 		"pagination": metadata,
 	})
 }
+
+func (cr *LeaveController) ApproveLeave(c *gin.Context) {
+	idparam := c.Param("id")
+	id, err := strconv.Atoi(idparam)
+	if err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	var input request.LeaveApproveRequest
+	if err := c.ShouldBind(&input); err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	userID, ok := helper.GetUserID(c)
+	if !ok {
+		share.ResponseError(c, http.StatusUnauthorized, "please login")
+		return
+	}
+	if err := cr.service.ApproveLeave(id, input, userID); err != nil {
+		share.ResponseError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	share.ResponseSuccess(c, http.StatusOK, "approved")
+}

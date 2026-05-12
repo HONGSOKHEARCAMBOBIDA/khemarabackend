@@ -10,3 +10,7 @@ type LeaveCreate struct {
 	DurationVlaue  float64 `form:"duration_value"`
 	DurationUnitID int     `form:"duration_unit_id"`
 }
+
+type LeaveApproveRequest struct {
+	StatusLeave int `form:"status_leave"`
+}
