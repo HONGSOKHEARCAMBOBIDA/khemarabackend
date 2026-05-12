@@ -15,6 +15,7 @@ import (
 
 type LeaveService interface {
 	CreateLeave(id int, input request.LeaveCreate) error
+	UpdateLeave(id int, input request.LeaveUpdate) error
 	GetLeave(id int, filters map[string]string, pagination request.Pagination) ([]response.LeaveResponse, *model.PaginationMetadata, error)
 	ApproveLeave(id int, input request.LeaveApproveRequest, userID int) error
 }
@@ -78,6 +79,50 @@ func (s *leaveservice) CreateLeave(id int, input request.LeaveCreate) error {
 	if err := tx.Create(&newLeaveDuration).Error; err != nil {
 		tx.Rollback()
 		return fmt.Errorf("failed to create leave duration: %w", err)
+	}
+
+	return tx.Commit().Error
+}
+
+func (s *leaveservice) UpdateLeave(id int, input request.LeaveUpdate) error {
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	result := tx.Model(&model.Leave{}).Where("id =? AND status_leave_id =?", id, 1).
+		Updates(map[string]interface{}{
+			"leave_type_id": input.LeaveTypeID,
+			"start_date":    input.StartDate,
+			"end_date":      input.EndDate,
+			"back_date":     input.BackDate,
+			"description":   input.Description,
+			"approve_by_id": input.ApproveByID,
+		})
+
+	if result.Error != nil {
+		tx.Rollback()
+		return fmt.Errorf("leave cannot update")
+	}
+
+	if result.RowsAffected == 0 {
+		tx.Rollback()
+		return fmt.Errorf("អ្នកមិនអាចអនុម័តបានទេ")
+	}
+
+	resutl1 := tx.Model(&model.LeaveDuration{}).Where("leave_id =?", id).Updates(map[string]interface{}{
+		"duration_value":   input.DurationVlaue,
+		"duration_unit_id": input.DurationUnitID,
+	})
+
+	if resutl1.Error != nil {
+		tx.Rollback()
+		return fmt.Errorf("leave duration cannot update")
 	}
 
 	return tx.Commit().Error
@@ -282,14 +327,26 @@ func (s *leaveservice) ApproveLeave(
 		}
 	}()
 
-	if err := tx.Model(&model.Leave{}).
-		Where("id = ?", id).
+	var user model.User
+	if err := tx.First(&user, userID).Error; err != nil {
+		tx.Rollback()
+		return fmt.Errorf("user not found")
+	}
+
+	result := tx.Model(&model.Leave{}).
+		Where("id = ? AND approve_by_id =?", id, user.EmployeeID).
 		Updates(map[string]interface{}{
 			"status_leave_id": input.StatusLeave,
-			"approve_by_id":   userID,
-		}).Error; err != nil {
+		})
+
+	if result.Error != nil {
 		tx.Rollback()
 		return fmt.Errorf("leave cannot approve")
+	}
+
+	if result.RowsAffected == 0 {
+		tx.Rollback()
+		return fmt.Errorf("អ្នកមិនអាចអនុម័តបានទេ")
 	}
 
 	return tx.Commit().Error

@@ -102,3 +102,22 @@ func (cr *LeaveController) ApproveLeave(c *gin.Context) {
 	}
 	share.ResponseSuccess(c, http.StatusOK, "approved")
 }
+
+func (cr *LeaveController) UpdateLeave(c *gin.Context) {
+	idparam := c.Param("id")
+	id, err := strconv.Atoi(idparam)
+	if err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	var input request.LeaveUpdate
+	if err := c.ShouldBind(&input); err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := cr.service.UpdateLeave(id, input); err != nil {
+		share.ResponseError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	share.ResponseSuccess(c, http.StatusOK, "leave updated")
+}

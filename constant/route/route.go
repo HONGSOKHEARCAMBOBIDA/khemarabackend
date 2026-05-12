@@ -135,7 +135,7 @@ const (
 	// Leave
 	AddLeave     = "add.leave"
 	ViewLeave    = "view.leave"
-	EditLeave    = "edit.leave"
+	EditLeave    = "edit.leave/:id"
 	ApproveLeave = "approve.leave/:id"
 
 	// StatusLeave
