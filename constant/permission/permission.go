@@ -121,4 +121,10 @@ const (
 
 	// StatusLeave
 	ViewStatusLeave = "view.status.leave"
+
+	// Loan
+	ViewLoan   = "view.loan"
+	AddLoan    = "add.loan"
+	EditLoan   = "edit.loan"
+	DeleteLoan = "delete.loan"
 )

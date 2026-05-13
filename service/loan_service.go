@@ -1,11 +1,15 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"mysql/config"
+	"mysql/helper"
 	"mysql/model"
 	"mysql/request"
+	"mysql/response"
+	"mysql/utils"
 	"strconv"
 	"time"
 
@@ -14,6 +18,7 @@ import (
 
 type LoanService interface {
 	CreateLoan(userID int, input request.LoanRequest) error
+	GetLoan(id int, filters map[string]string, pagination request.Pagination) ([]response.LoanResponse, *model.PaginationMetadata, error)
 }
 
 type loanservice struct {
@@ -37,38 +42,56 @@ func (s *loanservice) CreateLoan(userID int, input request.LoanRequest) error {
 		}
 	}()
 
-	// Generate loan code from last loan ID
 	var lastLoan model.Loan
 	tx.Order("id DESC").First(&lastLoan)
-	newCode := fmt.Sprintf("LOAN-%05d", lastLoan.ID+1)
+	newCode := utils.GenerateLoanCode(lastLoan.ID)
 
-	// Get loan rate from settings
 	var setting model.Setting
 	if err := tx.Where("`key` = ?", "LOANRATE").First(&setting).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
+
 	loanRate, err := strconv.ParseFloat(setting.Value, 64)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	// Count how many loans this employee has had
 	var loanByEmployee model.Loan
 	var numberLoan int
 	if err := tx.Where("employee_id = ?", input.EmployeeID).Order("id DESC").First(&loanByEmployee).Error; err != nil {
-		numberLoan = 1 // no previous loan
+		numberLoan = 1
 	} else {
 		numberLoan = loanByEmployee.NumberofLoan + 1
 	}
 
-	// Calculations
-	totalInterest := math.Round(input.LoanAmount*loanRate/100*100) / 100
+	var user model.User
+	if err := tx.Where("employee_id =?", input.EmployeeID).First(&user).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	var pair model.CurrencyPair
+	if err := tx.Where("base_currency_id =? AND target_currency_id =?", 2, input.CurrencyID).First(&pair).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	var exchange model.ExchangeRate
+	if err := tx.Where("pair_id =?", pair.ID).First(&exchange).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	exchangetoUSD := math.Ceil(input.LoanAmount/exchange.Rate*100) / 100
+	exchangetoSource := math.Round(exchangetoUSD*exchange.Rate*100) / 100
+
+	totalInterest := math.Round(exchangetoSource*loanRate/100*100*float64(input.LoanDuration)) / 100
 	totalPeriods := input.LoanDuration * 2
-	principlePerPeriod := math.Ceil(input.LoanAmount/float64(totalPeriods)*100) / 100
+	principlePerPeriod := math.Round((exchangetoUSD/float64(totalPeriods))*exchange.Rate*100) / 100
 	interestPerPeriod := math.Ceil(totalInterest/float64(totalPeriods)*100) / 100
-	monthlyPaymentAmount := math.Ceil((principlePerPeriod+interestPerPeriod)/100) * 100
+	monthlyPaymentAmount := principlePerPeriod + interestPerPeriod
 
 	now := time.Now().Format("2006-01-02")
 
@@ -77,18 +100,17 @@ func (s *loanservice) CreateLoan(userID int, input request.LoanRequest) error {
 		tx.Rollback()
 		return err
 	}
-	loanEndDate := loanStartDate.AddDate(0, input.LoanDuration, 0).Format("2006-01-02")
 
-	// Create loan
 	loan := model.Loan{
 		Code:                 newCode,
+		BranchID:             user.BranchID,
 		EmployeeID:           input.EmployeeID,
 		LoanAmount:           input.LoanAmount,
 		CurrencyID:           input.CurrencyID,
 		ApproveDate:          now,
 		LoanStartDate:        input.LoanStartDate,
-		LoanEndDate:          loanEndDate,
-		LoanRateAmount:       loanRate, // ✅ store rate, not total interest
+		LoanEndDate:          nil,
+		LoanRateAmount:       totalInterest,
 		NumberofLoan:         numberLoan,
 		ApproveBy:            userID,
 		LoanPurpose:          input.LoanPurpose,
@@ -101,40 +123,31 @@ func (s *loanservice) CreateLoan(userID int, input request.LoanRequest) error {
 		return err
 	}
 
-	// Generate schedules (2 per month: 1st and 16th)
 	schedules := make([]model.Schedule, 0, totalPeriods)
-	remainingPrinciple := input.LoanAmount
 	currentDate := loanStartDate
 
 	for i := 1; i <= totalPeriods; i++ {
 		var paymentDate time.Time
+
 		if i%2 == 1 {
-			// Odd → 1st of current month
-			paymentDate = time.Date(currentDate.Year(), currentDate.Month(), 1, 0, 0, 0, 0, time.UTC)
+			paymentDate = time.Date(currentDate.Year(), currentDate.Month(), 15, 0, 0, 0, 0, time.UTC)
 		} else {
-			// Even → 16th of current month, then move to next month
-			paymentDate = time.Date(currentDate.Year(), currentDate.Month(), 16, 0, 0, 0, 0, time.UTC)
+			paymentDate = time.Date(currentDate.Year(), currentDate.Month(), 30, 0, 0, 0, 0, time.UTC)
 			currentDate = currentDate.AddDate(0, 1, 0)
 		}
-
-		// Last period absorbs any rounding remainder
-		periodPrinciple := principlePerPeriod
-		if i == totalPeriods {
-			periodPrinciple = math.Round(remainingPrinciple*100) / 100
-		}
-		remainingPrinciple -= periodPrinciple
 
 		schedules = append(schedules, model.Schedule{
 			LoanID:          loan.ID,
 			PaymentDate:     paymentDate.Format("2006-01-02"),
-			PrincipleAmount: periodPrinciple,
+			PaidDate:        nil,
+			PrincipleAmount: principlePerPeriod,
 			RateAmount:      interestPerPeriod,
-			IncomeAmount:    periodPrinciple + interestPerPeriod,
-			PrinciplePaid:   0,
-			RatePaid:        0,
-			IncomePaid:      0,
+			IncomeAmount:    principlePerPeriod + interestPerPeriod,
+			PrinciplePaid:   nil,
+			RatePaid:        nil,
+			IncomePaid:      nil,
 			ScheduleNumber:  i,
-			Status:          0,
+			Status:          1,
 		})
 	}
 
@@ -144,4 +157,175 @@ func (s *loanservice) CreateLoan(userID int, input request.LoanRequest) error {
 	}
 
 	return tx.Commit().Error
+}
+
+func (s *loanservice) GetLoan(id int, filters map[string]string, pagination request.Pagination) ([]response.LoanResponse, *model.PaginationMetadata, error) {
+	var user model.User
+	if err := s.db.First(&user, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil, fmt.Errorf("user with id %d not found", id)
+		}
+		return nil, nil, fmt.Errorf("failed to fetch user: %w", err)
+	}
+
+	var role model.Role
+	if err := s.db.First(&role, user.RoleID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil, fmt.Errorf("role with id %d not found", user.RoleID)
+		}
+		return nil, nil, fmt.Errorf("failed to fetch role: %w", err)
+	}
+
+	var loans []response.LoanResponse
+	var totalCount int64
+
+	offset := (pagination.Page - 1) * pagination.PageSize
+	query := s.db.Table("loans l").
+		Select(`
+            l.id AS id,
+            l.code AS code,
+            b.id AS branch_id,
+            b.name AS branch_name,
+            e.id AS employee_id,
+            e.name_kh AS employee_name,
+            e.gender AS employee_gender,
+            ep.dob AS employee_dob,
+            u.contact AS employee_contact,
+            e.code AS employee_code,
+            l.loan_amount AS loan_amount,
+            c.id AS currency_id,
+            c.code AS currency_code,
+            l.approve_date AS approve_date,
+            l.loan_start_date AS loan_start_date,
+            l.loan_end_date AS loan_end_date,
+            l.number_of_loan AS number_of_loan,
+            uu.id AS approve_by_id,
+            eu.name_kh AS approve_by_name,
+            l.loan_purpose AS loan_purpose,
+            l.status AS loan_status,
+            l.loan_duration AS loan_duration
+        `).
+		Joins("LEFT JOIN branches b ON b.id = l.branch_id").
+		Joins("LEFT JOIN employees e ON e.id = l.employee_id").
+		Joins("LEFT JOIN employee_profiles ep ON ep.employee_id = e.id").
+		Joins("LEFT JOIN users u ON u.employee_id = e.id").
+		Joins("LEFT JOIN currencies c ON c.id = l.currency_id").
+		Joins("LEFT JOIN users uu ON uu.id = l.approve_by").
+		Joins("LEFT JOIN employees eu ON eu.id = uu.employee_id")
+
+	if role.Level < 4 {
+		query = query.Where("l.employee_id = ?", user.EmployeeID)
+	} else {
+		switch user.ManageBranch {
+		case 1:
+			query = query.Where("l.branch_id = ?", user.BranchID)
+		case 2:
+			var branchIDs []int
+			if err := s.db.
+				Model(&model.UserBranch{}).
+				Where("user_id = ?", user.ID).
+				Pluck("branch_id", &branchIDs).Error; err != nil {
+				return nil, nil, fmt.Errorf("failed to fetch user branches: %w", err)
+			}
+			if len(branchIDs) == 0 {
+				return []response.LoanResponse{}, &model.PaginationMetadata{
+					Page:       pagination.Page,
+					PageSize:   pagination.PageSize,
+					TotalCount: 0,
+					TotalPages: 0,
+				}, nil
+			}
+			query = query.Where("l.branch_id IN ?", branchIDs)
+		case 3:
+		}
+	}
+
+	for key, value := range filters {
+		if value == "" {
+			continue
+		}
+		switch key {
+		case "search":
+			like := "%" + value + "%"
+			query = query.Where("(e.name_en LIKE ? OR e.name_kh LIKE ?)", like, like)
+		case "employee_id":
+			if role.Level >= 4 {
+				query = query.Where("l.employee_id = ?", value)
+			}
+		case "branch_id":
+			if role.Level >= 4 {
+				query = query.Where("l.branch_id = ?", value)
+			}
+		case "status":
+			query = query.Where("l.status = ?", value)
+		}
+	}
+
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, nil, err
+	}
+
+	if err := query.Offset(offset).Limit(pagination.PageSize).Scan(&loans).Error; err != nil {
+		return nil, nil, err
+	}
+
+	if len(loans) > 0 {
+		loanIDs := make([]int, len(loans))
+		for i, loan := range loans {
+			loanIDs[i] = loan.ID
+		}
+
+		var allSchedules []struct {
+			LoanID int `json:"-"`
+			response.ScheduleResponse
+		}
+
+		scheduleQuery := s.db.Table("schedules s").
+			Select(`
+                s.loan_id,
+                s.id AS schedule_id,
+                s.payment_date AS payment_date,
+                s.paid_date AS paid_date,
+                s.principle_amount AS principle_amount,
+                s.rate_amount AS rate_amount,
+                s.income_amount AS income_amount,
+                s.principle_paid AS principle_paid,
+                s.rate_paid AS rate_paid,
+                s.income_paid AS income_paid,
+                s.status AS status
+            `).
+			Where("s.loan_id IN ?", loanIDs)
+
+		if err := scheduleQuery.Scan(&allSchedules).Error; err != nil {
+			return nil, nil, err
+		}
+
+		schedulesByLoan := make(map[int][]response.ScheduleResponse)
+		for _, schedule := range allSchedules {
+			schedulesByLoan[schedule.LoanID] = append(schedulesByLoan[schedule.LoanID], schedule.ScheduleResponse)
+		}
+		for i := range loans {
+			if schedules, exists := schedulesByLoan[loans[i].ID]; exists {
+				loans[i].ScheduleResponse = schedules
+			} else {
+				loans[i].ScheduleResponse = []response.ScheduleResponse{} // Empty slice instead of nil
+			}
+		}
+	}
+
+	for i := range loans {
+		loans[i].EmployeeDob = helper.FormatDate(loans[i].EmployeeDob)
+		loans[i].ApproveDate = helper.FormatDate(loans[i].ApproveDate)
+		loans[i].LoanStartDate = helper.FormatDate(loans[i].LoanStartDate)
+	}
+
+	totalPages := int(math.Ceil(float64(totalCount) / float64(pagination.PageSize)))
+	metadata := &model.PaginationMetadata{
+		Page:       pagination.Page,
+		PageSize:   pagination.PageSize,
+		TotalCount: totalCount,
+		TotalPages: totalPages,
+	}
+
+	return loans, metadata, nil
 }

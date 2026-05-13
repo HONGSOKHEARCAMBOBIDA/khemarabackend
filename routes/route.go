@@ -39,6 +39,7 @@ func SetupRoutes(r *gin.Engine) {
 	leavedurationunitcontroller := controller.NewLeaveDurationController()
 	leavecontroller := controller.NewLeaveController()
 	statusleavecontroller := controller.NewStatusLeaveController()
+	loancontroller := controller.NewLoanController()
 	r.Static("/profileimage", "./public/profileimage")
 	r.Static("/qrcodeimage", "./public/qrcodeimage")
 	r.Static("/educationimage", "./public/educationimage")
@@ -181,5 +182,9 @@ func SetupRoutes(r *gin.Engine) {
 
 		// StatusLeave
 		auth.GET(route.ViewStatusLeave, middleware.PermissionMiddleware(permission.ViewStatusLeave), statusleavecontroller.GetStatusLeave)
+
+		// Loan
+		auth.POST(route.AddLoan, middleware.PermissionMiddleware(permission.AddLoan), loancontroller.CreateLoan)
+		auth.GET(route.ViewLoan, middleware.PermissionMiddleware(permission.ViewLoan), loancontroller.GetLoan)
 	}
 }
