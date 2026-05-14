@@ -1,6 +1,7 @@
 package response
 
 type ScheduleResponse struct {
+	LoanID          int    `json:"loan_id" gorm:"column:loan_id"`
 	ID              int    `json:"schedule_id"`
 	PaymentDate     string `json:"payment_date"`
 	PaidDate        string `json:"paid_date"`
@@ -10,5 +11,5 @@ type ScheduleResponse struct {
 	PrinciplePaid   string `json:"principle_paid"`
 	RatePaid        string `json:"rate_paid"`
 	IncomePaid      string `json:"income_paid"`
-	Status          int    `json:"staus"`
+	Status          int    `json:"status"`
 }

@@ -182,29 +182,29 @@ func (s *loanservice) GetLoan(id int, filters map[string]string, pagination requ
 	offset := (pagination.Page - 1) * pagination.PageSize
 	query := s.db.Table("loans l").
 		Select(`
-            l.id AS id,
-            l.code AS code,
-            b.id AS branch_id,
-            b.name AS branch_name,
-            e.id AS employee_id,
-            e.name_kh AS employee_name,
-            e.gender AS employee_gender,
-            ep.dob AS employee_dob,
-            u.contact AS employee_contact,
-            e.code AS employee_code,
-            l.loan_amount AS loan_amount,
-            c.id AS currency_id,
-            c.code AS currency_code,
-            l.approve_date AS approve_date,
-            l.loan_start_date AS loan_start_date,
-            l.loan_end_date AS loan_end_date,
-            l.number_of_loan AS number_of_loan,
-            uu.id AS approve_by_id,
-            eu.name_kh AS approve_by_name,
-            l.loan_purpose AS loan_purpose,
-            l.status AS loan_status,
-            l.loan_duration AS loan_duration
-        `).
+			l.id AS id,
+			l.code AS code,
+			b.id AS branch_id,
+			b.name AS branch_name,
+			e.id AS employee_id,
+			e.name_kh AS employee_name,
+			e.gender AS employee_gender,
+			ep.dob AS employee_dob,
+			u.contact AS employee_contact,
+			e.code AS employee_code,
+			l.loan_amount AS loan_amount,
+			c.id AS currency_id,
+			c.code AS currency_code,
+			l.approve_date AS approve_date,
+			l.loan_start_date AS loan_start_date,
+			l.loan_end_date AS loan_end_date,
+			l.number_of_loan AS number_of_loan,
+			uu.id AS approve_by_id,
+			eu.name_kh AS approve_by_name,
+			l.loan_purpose AS loan_purpose,
+			l.status AS loan_status,
+			l.loan_duration AS loan_duration
+		`).
 		Joins("LEFT JOIN branches b ON b.id = l.branch_id").
 		Joins("LEFT JOIN employees e ON e.id = l.employee_id").
 		Joins("LEFT JOIN employee_profiles ep ON ep.employee_id = e.id").
@@ -237,6 +237,7 @@ func (s *loanservice) GetLoan(id int, filters map[string]string, pagination requ
 			}
 			query = query.Where("l.branch_id IN ?", branchIDs)
 		case 3:
+
 		}
 	}
 
@@ -269,54 +270,53 @@ func (s *loanservice) GetLoan(id int, filters map[string]string, pagination requ
 		return nil, nil, err
 	}
 
+	for i := range loans {
+		loans[i].EmployeeDob = helper.FormatDate(loans[i].EmployeeDob)
+		loans[i].ApproveDate = helper.FormatDate(loans[i].ApproveDate)
+		loans[i].LoanStartDate = helper.FormatDate(loans[i].LoanStartDate)
+	}
+
 	if len(loans) > 0 {
 		loanIDs := make([]int, len(loans))
 		for i, loan := range loans {
 			loanIDs[i] = loan.ID
 		}
 
-		var allSchedules []struct {
-			LoanID int `json:"-"`
-			response.ScheduleResponse
-		}
-
-		scheduleQuery := s.db.Table("schedules s").
+		var allSchedules []response.ScheduleResponse
+		if err := s.db.Table("schedules s").
 			Select(`
-                s.loan_id,
-                s.id AS schedule_id,
-                s.payment_date AS payment_date,
-                s.paid_date AS paid_date,
-                s.principle_amount AS principle_amount,
-                s.rate_amount AS rate_amount,
-                s.income_amount AS income_amount,
-                s.principle_paid AS principle_paid,
-                s.rate_paid AS rate_paid,
-                s.income_paid AS income_paid,
-                s.status AS status
-            `).
-			Where("s.loan_id IN ?", loanIDs)
-
-		if err := scheduleQuery.Scan(&allSchedules).Error; err != nil {
+				s.loan_id AS loan_id,
+				s.id AS schedule_id,
+				s.payment_date AS payment_date,
+				s.paid_date AS paid_date,
+				s.principle_amount AS principle_amount,
+				s.rate_amount AS rate_amount,
+				s.income_amount AS income_amount,
+				s.principle_paid AS principle_paid,
+				s.rate_paid AS rate_paid,
+				s.income_paid AS income_paid,
+				s.status AS status
+			`).
+			Where("s.loan_id IN ?", loanIDs).
+			Scan(&allSchedules).Error; err != nil {
 			return nil, nil, err
 		}
 
-		schedulesByLoan := make(map[int][]response.ScheduleResponse)
-		for _, schedule := range allSchedules {
-			schedulesByLoan[schedule.LoanID] = append(schedulesByLoan[schedule.LoanID], schedule.ScheduleResponse)
+		scheduleMap := make(map[int][]response.ScheduleResponse)
+		for j := range allSchedules {
+			allSchedules[j].PaidDate = helper.FormatDate(allSchedules[j].PaidDate)
+			allSchedules[j].PaymentDate = helper.FormatDate(allSchedules[j].PaymentDate)
+			loanID := allSchedules[j].LoanID
+			scheduleMap[loanID] = append(scheduleMap[loanID], allSchedules[j])
 		}
+
+		// Assign grouped schedules back to each loan
 		for i := range loans {
-			if schedules, exists := schedulesByLoan[loans[i].ID]; exists {
-				loans[i].ScheduleResponse = schedules
-			} else {
-				loans[i].ScheduleResponse = []response.ScheduleResponse{} // Empty slice instead of nil
+			loans[i].ScheduleResponse = scheduleMap[loans[i].ID]
+			if loans[i].ScheduleResponse == nil {
+				loans[i].ScheduleResponse = []response.ScheduleResponse{}
 			}
 		}
-	}
-
-	for i := range loans {
-		loans[i].EmployeeDob = helper.FormatDate(loans[i].EmployeeDob)
-		loans[i].ApproveDate = helper.FormatDate(loans[i].ApproveDate)
-		loans[i].LoanStartDate = helper.FormatDate(loans[i].LoanStartDate)
 	}
 
 	totalPages := int(math.Ceil(float64(totalCount) / float64(pagination.PageSize)))
