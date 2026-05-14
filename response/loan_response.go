@@ -17,11 +17,11 @@ type LoanResponse struct {
 	ApproveDate      string             `json:"approve_date"`
 	LoanStartDate    string             `json:"loan_start_date"`
 	LoanEndDate      string             `json:"loan_end_date"`
-	NumberofLoan     int                `json:"number_of_loan"`
+	NumberofLoan     int                `json:"number_of_loan" gorm:"column:number_of_loan"`
 	ApproveByID      int                `json:"approve_by_id"`
 	ApproveByName    string             `json:"approve_by_name"`
 	LoanPurpose      string             `json:"loan_purpose"`
-	Status           int                `json:"loan_status"`
+	Status           int                `json:"loan_status" gorm:"column:loan_status"`
 	LoanDuration     int                `json:"loan_duration"`
 	ScheduleResponse []ScheduleResponse `json:"schedule" gorm:"-"`
 }
