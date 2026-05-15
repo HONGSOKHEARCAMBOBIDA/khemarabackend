@@ -1,7 +1,9 @@
 package request
 
 type PayrollRequestCreate struct {
+	EmployeeID     int     `json:"employee_id"`
 	SalaryID       int     `json:"salary_id" gorm:"column:salary_id"`
+	BranchID       int     `json:"branch_id"`
 	PayRollTypeID  int     `json:"payroll_type_id" gorm:"column:payroll_type_id"`
 	BasicSalary    float64 `json:"basic_salary" gorm:"column:basic_salary"`
 	HalfSalary     float64 `json:"half_salary" gorm:"column:half_salary"`
@@ -17,4 +19,5 @@ type PayrollRequestCreate struct {
 	CurrencyID     int     `json:"currency_id" gorm:"column:currency_id"`
 	Note           string  `json:"note" gorm:"column:note"`
 	Comment        string  `json:"comment"`
+	LoanID         int     `json:"loan_id"`
 }
