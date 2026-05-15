@@ -75,3 +75,17 @@ func (cr *LoanController) GetLoan(c *gin.Context) {
 	})
 
 }
+
+func (cr *LoanController) DeleteLoan(c *gin.Context) {
+	idparam := c.Param("id")
+	id, err := strconv.Atoi(idparam)
+	if err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := cr.service.DeleteLoan(id); err != nil {
+		share.ResponseError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	share.ResponseSuccess(c, http.StatusOK, "loan deleted")
+}

@@ -19,6 +19,7 @@ import (
 type LoanService interface {
 	CreateLoan(userID int, input request.LoanRequest) error
 	GetLoan(id int, filters map[string]string, pagination request.Pagination) ([]response.LoanResponse, *model.PaginationMetadata, error)
+	DeleteLoan(id int) error
 }
 
 type loanservice struct {
@@ -328,4 +329,41 @@ func (s *loanservice) GetLoan(id int, filters map[string]string, pagination requ
 	}
 
 	return loans, metadata, nil
+}
+
+func (s *loanservice) DeleteLoan(id int) error {
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	var loan model.Loan
+
+	if err := tx.First(&loan, id).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	today := time.Now().Format("2006-01-02")
+
+	if loan.ApproveDate != today {
+		tx.Rollback()
+		return fmt.Errorf("can only delete loans approved today")
+	}
+
+	if err := tx.Where("loan_id =?", id).Delete(&model.Schedule{}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := tx.Delete(&model.Loan{}, id).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit().Error
 }

@@ -186,5 +186,6 @@ func SetupRoutes(r *gin.Engine) {
 		// Loan
 		auth.POST(route.AddLoan, middleware.PermissionMiddleware(permission.AddLoan), loancontroller.CreateLoan)
 		auth.GET(route.ViewLoan, middleware.PermissionMiddleware(permission.ViewLoan), loancontroller.GetLoan)
+		auth.DELETE(route.DeleteLoan, middleware.PermissionMiddleware(permission.DeleteLoan), loancontroller.DeleteLoan)
 	}
 }
