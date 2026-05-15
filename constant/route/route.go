@@ -146,4 +146,13 @@ const (
 	AddLoan    = "add.loan"
 	EditLoan   = "edit.loan/:id"
 	DeleteLoan = "delete.loan/:id"
+
+	// PayrollType
+	ViewPayrollType = "view.payroll.type"
+
+	// BonusType
+	ViewBonusType = "view.bonus.type"
+
+	// PayrollStatus
+	ViewPayrollStatus = "view.payroll.status"
 )

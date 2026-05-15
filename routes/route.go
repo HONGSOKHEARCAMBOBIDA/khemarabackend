@@ -40,6 +40,9 @@ func SetupRoutes(r *gin.Engine) {
 	leavecontroller := controller.NewLeaveController()
 	statusleavecontroller := controller.NewStatusLeaveController()
 	loancontroller := controller.NewLoanController()
+	payrolltypecontroller := controller.NewPayRollTypeController()
+	bonustypecontroller := controller.NewBonusTypeController()
+	payrollstatuscontroller := controller.NewPayrollStatusController()
 	r.Static("/profileimage", "./public/profileimage")
 	r.Static("/qrcodeimage", "./public/qrcodeimage")
 	r.Static("/educationimage", "./public/educationimage")
@@ -187,5 +190,14 @@ func SetupRoutes(r *gin.Engine) {
 		auth.POST(route.AddLoan, middleware.PermissionMiddleware(permission.AddLoan), loancontroller.CreateLoan)
 		auth.GET(route.ViewLoan, middleware.PermissionMiddleware(permission.ViewLoan), loancontroller.GetLoan)
 		auth.DELETE(route.DeleteLoan, middleware.PermissionMiddleware(permission.DeleteLoan), loancontroller.DeleteLoan)
+
+		// PayrollType
+		auth.GET(route.ViewPayrollType, middleware.PermissionMiddleware(permission.ViewPayrollType), payrolltypecontroller.GetPayrollType)
+
+		// BonusType
+		auth.GET(route.ViewBonusType, middleware.PermissionMiddleware(permission.ViewBonusType), bonustypecontroller.GetBonusType)
+
+		// PayrollStatus
+		auth.GET(route.ViewPayrollStatus, middleware.PermissionMiddleware(permission.ViewPayrollStatus), payrollstatuscontroller.GetPayrollStatus)
 	}
 }
