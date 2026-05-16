@@ -136,4 +136,12 @@ const (
 
 	// PayrollStatus
 	ViewPayrollStatus = "view.payroll.status"
+
+	// Payroll
+	ViewPayroll   = "view.payroll"
+	AddPayroll    = "add.payroll"
+	DeletePayroll = "delete.payroll"
+
+	// Recieve
+	ViewRecieve = "view.recieve"
 )

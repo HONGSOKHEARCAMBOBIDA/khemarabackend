@@ -43,6 +43,8 @@ func SetupRoutes(r *gin.Engine) {
 	payrolltypecontroller := controller.NewPayRollTypeController()
 	bonustypecontroller := controller.NewBonusTypeController()
 	payrollstatuscontroller := controller.NewPayrollStatusController()
+	payrollcontroller := controller.NewPayrollController()
+	recievecontroller := controller.NewRecieveController()
 	r.Static("/profileimage", "./public/profileimage")
 	r.Static("/qrcodeimage", "./public/qrcodeimage")
 	r.Static("/educationimage", "./public/educationimage")
@@ -199,5 +201,12 @@ func SetupRoutes(r *gin.Engine) {
 
 		// PayrollStatus
 		auth.GET(route.ViewPayrollStatus, middleware.PermissionMiddleware(permission.ViewPayrollStatus), payrollstatuscontroller.GetPayrollStatus)
+
+		// Payroll
+		auth.POST(route.AddPayroll, middleware.PermissionMiddleware(permission.AddPayroll), payrollcontroller.CreatePayroll)
+		auth.DELETE(route.DeletePayroll, middleware.PermissionMiddleware(permission.DeletePayroll), payrollcontroller.DeletePayroll)
+
+		// Recieve
+		auth.GET(route.ViewRecieve, middleware.PermissionMiddleware(permission.ViewRecieve), recievecontroller.GetRecieve)
 	}
 }
