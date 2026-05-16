@@ -52,3 +52,34 @@ func (cr *PayrollController) DeletePayroll(c *gin.Context) {
 	}
 	share.ResponseSuccess(c, http.StatusOK, "payroll deleted")
 }
+
+func (cr *PayrollController) GetDraftPayroll(c *gin.Context) {
+	currencyParam := c.Query("currency")
+	branchParam := c.Query("branch")
+	payrolltype := c.Query("payroll")
+	currencyID, err := strconv.Atoi(currencyParam)
+	if err != nil {
+		share.ResponseError(c, http.StatusBadRequest, "invalid currency id")
+		return
+	}
+
+	branchID, err := strconv.Atoi(branchParam)
+	if err != nil {
+		share.ResponseError(c, http.StatusBadRequest, "invalid branch id")
+		return
+	}
+
+	payrolltypeID, err := strconv.Atoi(payrolltype)
+	if err != nil {
+		share.ResponseError(c, http.StatusBadRequest, "invalid branch id")
+		return
+	}
+
+	data, err := cr.service.GetDraftPayroll(branchID, currencyID, payrolltypeID)
+	if err != nil {
+		share.ResponseError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	share.RespondDate(c, http.StatusOK, data)
+}

@@ -57,6 +57,7 @@ func (s *recieveservice) GetRecieve(id int) ([]response.RecieveResponse, error) 
 		recieveIDs := make([]int, len(recieve))
 		for i, recieves := range recieve {
 			recieveIDs[i] = recieves.ID
+
 		}
 
 		var recievedetail []response.RecieveDetailResponse
@@ -66,14 +67,20 @@ func (s *recieveservice) GetRecieve(id int) ([]response.RecieveResponse, error) 
 				rd.receive_id AS receive_id,
 				rd.principal AS principal,
 				rd.rate AS rate,
-				rd.income AS income
+				rd.income AS income,
+			p.payroll_date AS payroll_date,
+			pt.name AS payroll_type
 			`).
+			Joins("LEFT JOIN recieves r ON r.id = rd.receive_id").
+			Joins("LEFT JOIN payrolls p ON p.id = r.payroll_id").
+			Joins("LEFT JOIN pay_roll_types pt ON pt.id = p.payroll_type_id").
 			Where("rd.receive_id IN ?", recieveIDs).
 			Scan(&recievedetail).Error; err != nil {
 			return nil, err
 		}
 		recievedetailmap := make(map[int][]response.RecieveDetailResponse)
 		for j := range recievedetail {
+			recievedetail[j].PayrollDate = helper.FormatDate(recievedetail[j].PayrollDate)
 			recievedetailmap[recievedetail[j].RecieveID] = append(recievedetailmap[recievedetail[j].RecieveID], recievedetail[j])
 		}
 

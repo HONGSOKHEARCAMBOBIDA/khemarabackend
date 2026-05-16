@@ -158,6 +158,7 @@ const (
 
 	// Payroll
 	ViewPayroll   = "view.payroll"
+	ViewDrafPayroll = "view.draft.payroll"
 	AddPayroll    = "add.payroll"
 	DeletePayroll = "delete.payroll/:id"
 
