@@ -378,9 +378,8 @@ func (s *payrollservice) DeletePayroll(id int) error {
 func (s *payrollservice) GetDraftPayroll(branchID int, currencyID int, payrollType int) ([]response.PayrollDrafResponse, error) {
 	var payrollDraft []response.PayrollDrafResponse
 
-	// Base pensionfund expression — zero if payroll type = 1
 	pensionfundExpr := "0 AS pensionfund"
-	if payrollType != 1 {
+	if payrollType == 2 {
 		pensionfundExpr = `
 			s.base_salary * stpensionfund.value
 				/ COALESCE(er_to_usd.rate, 1)
@@ -389,60 +388,63 @@ func (s *payrollservice) GetDraftPayroll(branchID int, currencyID int, payrollTy
 
 	query := s.db.Table("employees e").
 		Select(`
-			e.id                                                                AS employee_id,
-			e.name_kh                                                           AS employee_name,
-			b.id                                                                AS branch_id,
-			b.name                                                              AS branch_name,
-			s.id                                                                AS salary_id,
-			st.value                                                            AS total_work_day,
-
+			e.id AS employee_id,
+			e.name_kh AS employee_name,
+			b.id branch_id,
+			b.name AS branch_name,
+			s.id AS salary_id,
+			st.value AS total_work_day,
 			s.base_salary
 				/ COALESCE(er_to_usd.rate, 1)
-				* COALESCE(er_from_usd.rate, 1)                                 AS base_salary,
+				* COALESCE(er_from_usd.rate, 1) AS base_salary,
 
 			s.daily_rate
 				/ COALESCE(er_to_usd.rate, 1)
-				* COALESCE(er_from_usd.rate, 1)                                 AS daily_rate,
+				* COALESCE(er_from_usd.rate, 1) AS daily_rate,
 
 			s.daily_rate * st.value
 				/ COALESCE(er_to_usd.rate, 1)
-				* COALESCE(er_from_usd.rate, 1)                                 AS half_salary,
+				* COALESCE(er_from_usd.rate, 1) AS half_salary,
 			`+pensionfundExpr+`,
-			l.id                                                                AS loan_id,
+			l.id AS loan_id,
 
 			(
 				SELECT COALESCE(SUM(
 					CASE
 						WHEN COALESCE(ps.income_amount, 0) != COALESCE(ps.income_paid, 0)
 						AND DATE(ps.payment_date) <= CURRENT_DATE
-						THEN (COALESCE(ps.income_amount, 0) - COALESCE(ps.income_paid, 0))
+							THEN (COALESCE(ps.income_amount, 0) - COALESCE(ps.income_paid, 0)) / COALESCE(loanrate.rate, 1) * COALESCE(er_from_usd.rate, 1)
+
 						ELSE 0
 					END
 				), 0)
 				FROM schedules ps
 				WHERE ps.loan_id = l.id
-			)                                                                   AS loan_deduction
+			) AS loan_deduction
 		`).
 		Joins("LEFT JOIN users u ON u.employee_id = e.id").
-		Joins("JOIN branches b ON b.id = u.branch_id").
-		Joins("JOIN salaries s ON s.employee_id = e.id").
+		Joins("LEFT JOIN branches b ON b.id = u.branch_id").
+		Joins("LEFT JOIN salaries s ON s.employee_id = e.id").
 		Joins("LEFT JOIN loans l ON l.employee_id = e.id AND l.status = 1").
 		Joins("LEFT JOIN settings st ON st.key = 'WORKDAY'").
-
-		// Step 1: employee currency -> USD
+		Joins("LEFT JOIN currency_pairs loanpair ON loanpair.base_currency_id = 2 AND loanpair.target_currency_id = l.currency_id").
+		Joins("LEFT JOIN exchange_rates loanrate ON loanrate.pair_id = loanpair.id").
 		Joins("LEFT JOIN currency_pairs cp_to_usd ON cp_to_usd.base_currency_id = 2 AND cp_to_usd.target_currency_id = s.currency_id").
-		Joins("LEFT JOIN exchange_rates er_to_usd ON er_to_usd.pair_id = cp_to_usd.id AND er_to_usd.is_active = 1").
-
-		// Step 2: USD -> target currency
+		Joins("LEFT JOIN exchange_rates er_to_usd ON er_to_usd.pair_id = cp_to_usd.id").
 		Joins("LEFT JOIN currency_pairs cp_from_usd ON cp_from_usd.base_currency_id = 2 AND cp_from_usd.target_currency_id = ?", currencyID).
-		Joins("LEFT JOIN exchange_rates er_from_usd ON er_from_usd.pair_id = cp_from_usd.id AND er_from_usd.is_active = 1").
+		Joins("LEFT JOIN exchange_rates er_from_usd ON er_from_usd.pair_id = cp_from_usd.id").
 		Where("u.branch_id = ?", branchID)
-
-	// Only join pensionfund setting when needed
-	if payrollType != 1 {
+	if payrollType == 2 {
 		query = query.Joins("LEFT JOIN settings stpensionfund ON stpensionfund.key = 'PENSIONFUND'")
 	}
 
-	err := query.Scan(&payrollDraft).Error
-	return payrollDraft, err
+	if err := query.Scan(&payrollDraft).Error; err != nil {
+		return nil, err
+	}
+	for i := range payrollDraft {
+		p := &payrollDraft[i]
+		p.TotalDeduction = p.Pensionfund + p.LoanDeduction
+		p.NetSalary = p.HalfSalary - p.TotalDeduction
+	}
+	return payrollDraft, nil
 }

@@ -9,7 +9,6 @@ type PayrollDrafResponse struct {
 	BaseSalary     float64 `json:"base_salary"`
 	DailyRate      float64 `json:"daily_rate"`
 	HalfSalary     float64 `json:"half_salary" gorm:"column:half_salary"`
-	PayRollTypeID  int     `json:"payroll_type_id" gorm:"column:payroll_type_id"`
 	Pensionfund    float64 `json:"pensionfund" gorm:"column:pensionfund"`
 	TotalWorkDay   int     `json:"total_work_day" gorm:"column:total_work_day"`
 	LoanDeduction  float64 `json:"loan_deduction" gorm:"column:loan_deduction"`
