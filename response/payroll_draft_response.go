@@ -16,4 +16,5 @@ type PayrollDrafResponse struct {
 	NetSalary      float64 `json:"net_salary" gorm:"column:net_salary"`
 	Comment        string  `json:"comment"`
 	LoanID         int     `json:"loan_id"`
+	CurrenySymbol  string  `json:"currency_symbol" gorm:"column:currency_symbol"`
 }

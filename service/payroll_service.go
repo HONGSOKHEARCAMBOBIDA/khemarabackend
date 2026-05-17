@@ -407,6 +407,7 @@ func (s *payrollservice) GetDraftPayroll(branchID int, currencyID int, payrollTy
 				* COALESCE(er_from_usd.rate, 1) AS half_salary,
 			`+pensionfundExpr+`,
 			l.id AS loan_id,
+			c.symbol AS currency_symbol,
 
 			(
 				SELECT COALESCE(SUM(
@@ -424,7 +425,7 @@ func (s *payrollservice) GetDraftPayroll(branchID int, currencyID int, payrollTy
 		`).
 		Joins("LEFT JOIN users u ON u.employee_id = e.id").
 		Joins("LEFT JOIN branches b ON b.id = u.branch_id").
-		Joins("LEFT JOIN salaries s ON s.employee_id = e.id").
+		Joins("LEFT JOIN salaries s ON s.employee_id = e.id AND s.is_active = 1").
 		Joins("LEFT JOIN loans l ON l.employee_id = e.id AND l.status = 1").
 		Joins("LEFT JOIN settings st ON st.key = 'WORKDAY'").
 		Joins("LEFT JOIN currency_pairs loanpair ON loanpair.base_currency_id = 2 AND loanpair.target_currency_id = l.currency_id").
@@ -433,6 +434,7 @@ func (s *payrollservice) GetDraftPayroll(branchID int, currencyID int, payrollTy
 		Joins("LEFT JOIN exchange_rates er_to_usd ON er_to_usd.pair_id = cp_to_usd.id").
 		Joins("LEFT JOIN currency_pairs cp_from_usd ON cp_from_usd.base_currency_id = 2 AND cp_from_usd.target_currency_id = ?", currencyID).
 		Joins("LEFT JOIN exchange_rates er_from_usd ON er_from_usd.pair_id = cp_from_usd.id").
+		Joins("LEFT JOIN currencies c ON c.id =?", currencyID).
 		Where("u.branch_id = ?", branchID)
 	if payrollType == 2 {
 		query = query.Joins("LEFT JOIN settings stpensionfund ON stpensionfund.key = 'PENSIONFUND'")
