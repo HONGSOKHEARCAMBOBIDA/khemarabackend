@@ -401,10 +401,6 @@ func (s *payrollservice) GetDraftPayroll(branchID int, currencyID int, payrollTy
 			s.daily_rate
 				/ COALESCE(er_to_usd.rate, 1)
 				* COALESCE(er_from_usd.rate, 1) AS daily_rate,
-
-			s.daily_rate 
-				/ COALESCE(er_to_usd.rate, 1)
-				* COALESCE(er_from_usd.rate, 1) * st.value AS half_salary,
 			`+pensionfundExpr+`,
 			l.id AS loan_id,
 			c.symbol AS currency_symbol,
@@ -443,10 +439,6 @@ func (s *payrollservice) GetDraftPayroll(branchID int, currencyID int, payrollTy
 	if err := query.Scan(&payrollDraft).Error; err != nil {
 		return nil, err
 	}
-	for i := range payrollDraft {
-		p := &payrollDraft[i]
-		p.TotalDeduction = p.Pensionfund + p.LoanDeduction
-		p.NetSalary = p.HalfSalary - p.TotalDeduction
-	}
+
 	return payrollDraft, nil
 }

@@ -17,4 +17,7 @@ type PayrollDrafResponse struct {
 	Comment        string  `json:"comment"`
 	LoanID         int     `json:"loan_id"`
 	CurrenySymbol  string  `json:"currency_symbol" gorm:"column:currency_symbol"`
+	Isbonus        bool    `form:"is_bonus" gorm:"column:is_bonus"`
+	BonusType      int     `form:"bonus_type" gorm:"column:bonus_type"`
+	BonusAmount    float64 `form:"bonus_amount" gorm:"column:bonus_amount"`
 }
