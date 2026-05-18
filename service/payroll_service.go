@@ -402,9 +402,9 @@ func (s *payrollservice) GetDraftPayroll(branchID int, currencyID int, payrollTy
 				/ COALESCE(er_to_usd.rate, 1)
 				* COALESCE(er_from_usd.rate, 1) AS daily_rate,
 
-			s.daily_rate * st.value
+			s.daily_rate 
 				/ COALESCE(er_to_usd.rate, 1)
-				* COALESCE(er_from_usd.rate, 1) AS half_salary,
+				* COALESCE(er_from_usd.rate, 1) * st.value AS half_salary,
 			`+pensionfundExpr+`,
 			l.id AS loan_id,
 			c.symbol AS currency_symbol,
