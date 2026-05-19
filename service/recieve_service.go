@@ -68,10 +68,12 @@ func (s *recieveservice) GetRecieve(id int) ([]response.RecieveResponse, error) 
 				rd.principal AS principal,
 				rd.rate AS rate,
 				rd.income AS income,
+				c.name AS currency_name,
 			p.payroll_date AS payroll_date,
 			pt.name AS payroll_type
 			`).
 			Joins("LEFT JOIN recieves r ON r.id = rd.receive_id").
+			Joins("LEFT JOIN currencies c ON c.id = r.currency_id").
 			Joins("LEFT JOIN payrolls p ON p.id = r.payroll_id").
 			Joins("LEFT JOIN pay_roll_types pt ON pt.id = p.payroll_type_id").
 			Where("rd.receive_id IN ?", recieveIDs).

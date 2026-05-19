@@ -213,9 +213,9 @@ func (s *payrollservice) CreatePayroll(userID int, input []request.PayrollReques
 					LoanID:     loan.ID,
 					RecieveID:  recieve.ID,
 					ScheduleID: schedule.ID,
-					Principle:  payprinciple,
-					Rate:       payinterest,
-					Income:     payprinciple + payinterest,
+					Principle:  payprinciple / rateusd.Rate * rate.Rate,
+					Rate:       payinterest / rateusd.Rate * rate.Rate,
+					Income:     (payprinciple + payinterest) / rateusd.Rate * rate.Rate,
 				}
 				if err := tx.Create(&recievedetail).Error; err != nil {
 					tx.Rollback()
