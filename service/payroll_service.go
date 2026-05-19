@@ -17,6 +17,7 @@ type PayrollService interface {
 	CreatePayroll(userID int, input []request.PayrollRequestCreate) error
 	DeletePayroll(id int) error
 	GetDraftPayroll(branch_id int, currency_id int, payroll_type int) ([]response.PayrollDrafResponse, error)
+	GetPayroll(userID int, filters map[string]string, pagination request.Pagination) ([]response.PayrollResponse, *model.PaginationMetadata, error)
 }
 
 type payrollservice struct {
@@ -441,4 +442,8 @@ func (s *payrollservice) GetDraftPayroll(branchID int, currencyID int, payrollTy
 	}
 
 	return payrollDraft, nil
+}
+
+func (s *payrollservice) GetPayroll(userID int, filters map[string]string, pagination request.Pagination) ([]response.PayrollResponse, *model.PaginationMetadata, error) {
+
 }

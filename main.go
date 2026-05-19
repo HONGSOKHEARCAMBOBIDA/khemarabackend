@@ -15,7 +15,8 @@ func main() {
 
 	// Create Gin router
 	r := gin.Default()
-
+	// if want to protect file size
+	// r.MaxMultipartMemory = 8 << 20
 	// Apply CORS middleware
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"}, // your frontend origin
