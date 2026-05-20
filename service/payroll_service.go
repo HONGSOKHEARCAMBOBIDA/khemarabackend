@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"mysql/config"
+	"mysql/helper"
 	"mysql/model"
 	"mysql/request"
 	"mysql/response"
@@ -17,7 +18,7 @@ type PayrollService interface {
 	CreatePayroll(userID int, input []request.PayrollRequestCreate) error
 	DeletePayroll(id int) error
 	GetDraftPayroll(branch_id int, currency_id int, payroll_type int) ([]response.PayrollDrafResponse, error)
-	GetPayroll(userID int, filters map[string]string, pagination request.Pagination) ([]response.PayrollResponse, *model.PaginationMetadata, error)
+	GetPayroll(userID int, filters map[string]string) ([]response.PayrollResponse, error)
 }
 
 type payrollservice struct {
@@ -444,6 +445,103 @@ func (s *payrollservice) GetDraftPayroll(branchID int, currencyID int, payrollTy
 	return payrollDraft, nil
 }
 
-func (s *payrollservice) GetPayroll(userID int, filters map[string]string, pagination request.Pagination) ([]response.PayrollResponse, *model.PaginationMetadata, error) {
+func (s *payrollservice) GetPayroll(userID int, filters map[string]string) ([]response.PayrollResponse, error) {
+	var payroll []response.PayrollResponse
+	var user model.User
+	if err := s.db.First(&user, userID).Error; err != nil {
+		return nil, err
+	}
+	var role model.Role
+	if err := s.db.First(&role, user.RoleID).Error; err != nil {
+		return nil, err
+	}
+	query := s.db.Table("payrolls p").
+		Select(`
+		p.id AS id,
+		b.name AS branch_name,
+		e.name_en AS employee_name_en,
+		e.name_kh AS employee_name_kh,
+		e.gender AS employee_gender,
+		ps.display_name AS position_name,
+		o.name AS office_name,
+		ep.profile_image AS profile_image,
+		ep.bank_name AS bank_name,
+		ep.bank_account_number AS bank_account_number,
+		ep.qr_code_bank_account AS qr_code_bank_account,
+		p.basic_salary AS basic_salary,
+		p.half_salary AS half_salary,
+		p.pension_fund AS pensionfund,
+		p.total_work_day AS total_work_day,
+		p.payroll_date AS payroll_date,
+		p.loan_deduction AS loan_deduction,
+		p.is_bonus AS is_bonus,
+		bo.name AS bonus_type_name,
+		p.bonus_amount AS bonus_amount,
+		p.total_deduction AS total_deduction,
+		p.net_salary AS net_salary,
+		c.name AS currency_name,
+		c.code AS currency_code,
+		prs.name AS status_name,
+		p.note AS note
+	`).
+		Joins("LEFT JOIN branches b ON b.id = p.branch_id").
+		Joins("LEFT JOIN salaries ON salaries.id = p.salary_id AND salaries.is_active = 1").
+		Joins("LEFT JOIN employees e ON e.id = salaries.employee_id").
+		Joins("LEFT JOIN positions ps ON ps.id = e.position_id").
+		Joins("LEFT JOIN offices o ON o.id = e.office_id").
+		Joins("LEFT JOIN employee_profiles ep ON ep.employee_id = e.id").
+		Joins("LEFT JOIN bonus_types bo ON bo.id = p.bonus_type").
+		Joins("LEFT JOIN currencies c ON c.id = p.currency_id").
+		Joins("LEFT JOIN pay_roll_statuses prs ON prs.id = p.status_id")
+
+	if role.Level < 4 {
+		query = query.Where("e.id = ?", user.EmployeeID)
+	} else {
+		switch user.ManageBranch {
+		case 1:
+			query = query.Where("p.branch_id =?", user.BranchID)
+		case 2:
+			var branchIDs []int
+			if err := s.db.Model(&model.UserBranch{}).
+				Where("user_id =?", user.ID).
+				Pluck("branch_id", &branchIDs).Error; err != nil {
+				return nil, fmt.Errorf("failed to fetch user branches: %w", err)
+			}
+			if len(branchIDs) == 0 {
+				return []response.PayrollResponse{}, nil
+			}
+			query = query.Where("p.branch_id IN ?", branchIDs)
+		case 3:
+		}
+
+	}
+
+	for key, value := range filters {
+		if value != "" {
+			switch key {
+			case "branch_id":
+				query = query.Where("p.branch_id =?", value)
+			case "name":
+				query = query.Where("e.name_kh LIKE ? OR e.name_en LIKE ?", "%"+value+"%", "%"+value+"%")
+			case "position_id":
+				query = query.Where("e.position_id =?", value)
+			case "status_id":
+				query = query.Where("p.status_id =?", value)
+			case "office_id":
+				query = query.Where("e.office_id =?", value)
+			case "department_id":
+				query = query.Where("p.department_id =?", value)
+
+			}
+		}
+	}
+
+	if err := query.Scan(&payroll).Error; err != nil {
+		return nil, err
+	}
+	for i := range payroll {
+		payroll[i].PayrollDate = helper.FormatDate(payroll[i].PayrollDate)
+	}
+	return payroll, nil
 
 }

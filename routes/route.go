@@ -205,7 +205,8 @@ func SetupRoutes(r *gin.Engine) {
 		// Payroll
 		auth.POST(route.AddPayroll, middleware.PermissionMiddleware(permission.AddPayroll), payrollcontroller.CreatePayroll)
 		auth.DELETE(route.DeletePayroll, middleware.PermissionMiddleware(permission.DeletePayroll), payrollcontroller.DeletePayroll)
-		auth.GET(route.ViewDrafPayroll,middleware.PermissionMiddleware(permission.ViewPayroll),payrollcontroller.GetDraftPayroll)
+		auth.GET(route.ViewDrafPayroll, middleware.PermissionMiddleware(permission.ViewPayroll), payrollcontroller.GetDraftPayroll)
+		auth.GET(route.ViewPayroll, middleware.PermissionMiddleware(permission.ViewPayroll), payrollcontroller.GetPayroll)
 
 		// Recieve
 		auth.GET(route.ViewRecieve, middleware.PermissionMiddleware(permission.ViewRecieve), recievecontroller.GetRecieve)

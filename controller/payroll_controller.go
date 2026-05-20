@@ -83,3 +83,25 @@ func (cr *PayrollController) GetDraftPayroll(c *gin.Context) {
 
 	share.RespondDate(c, http.StatusOK, data)
 }
+
+func (cr *PayrollController) GetPayroll(c *gin.Context) {
+	userID, ok := helper.GetUserID(c)
+	if !ok {
+		share.ResponseError(c, http.StatusUnauthorized, "please login")
+		return
+	}
+	filters := map[string]string{
+		"branch_id":     c.Query("branch_id"),
+		"name":          c.Query("name"),
+		"position_id":   c.Query("position_id"),
+		"status_id":     c.Query("status_id"),
+		"office_id":     c.Query("office_id"),
+		"department_id": c.Query("department_id"),
+	}
+	payroll, err := cr.service.GetPayroll(userID, filters)
+	if err != nil {
+		share.ResponseError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	share.RespondDate(c, http.StatusOK, payroll)
+}
