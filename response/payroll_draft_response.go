@@ -3,6 +3,7 @@ package response
 type PayrollDrafResponse struct {
 	EmployeeID     int     `json:"employee_id"`
 	EmployeeName   string  `json:"employee_name"`
+	Ispromote      bool    `json:"is_promote" gorm:"column:is_promote"`
 	BranchID       int     `json:"branch_id"`
 	BranchName     string  `json:"branch_name"`
 	SalaryID       int     `json:"salary_id"`

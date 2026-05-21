@@ -7,7 +7,6 @@ type PayrollResponse struct {
 	EmployeeGender    int    `json:"employee_gender"`
 	PositionName      string `json:"position_name"`
 	OfficeName        string `json:"office_name"`
-	ProfileImage      string `json:"profile_image"`
 	BankName          string `json:"bank_name"`
 	BankAccountNumber string `json:"bank_account_number"`
 	QrCodeBankAccount string `json:"qr_code_bank_account"`

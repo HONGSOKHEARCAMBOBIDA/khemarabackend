@@ -392,6 +392,7 @@ func (s *payrollservice) GetDraftPayroll(branchID int, currencyID int, payrollTy
 		Select(`
 			e.id AS employee_id,
 			e.name_kh AS employee_name,
+			e.is_promote AS is_promote,
 			b.id branch_id,
 			b.name AS branch_name,
 			s.id AS salary_id,
@@ -442,6 +443,12 @@ func (s *payrollservice) GetDraftPayroll(branchID int, currencyID int, payrollTy
 		return nil, err
 	}
 
+	for i := range payrollDraft {
+		if payrollDraft[i].Ispromote == false {
+			payrollDraft[i].Pensionfund = 0
+		}
+	}
+
 	return payrollDraft, nil
 }
 
@@ -466,7 +473,6 @@ func (s *payrollservice) GetPayroll(userID int, filters map[string]string, pagin
 		e.gender AS employee_gender,
 		ps.display_name AS position_name,
 		o.name AS office_name,
-		ep.profile_image AS profile_image,
 		ep.bank_name AS bank_name,
 		ep.bank_account_number AS bank_account_number,
 		ep.qr_code_bank_account AS qr_code_bank_account,
@@ -537,7 +543,7 @@ func (s *payrollservice) GetPayroll(userID int, filters map[string]string, pagin
 			case "office_id":
 				query = query.Where("e.office_id =?", value)
 			case "department_id":
-				query = query.Where("p.department_id =?", value)
+				query = query.Where("ps.department_id =?", value)
 			case "start_date":
 				query = query.Where("p.payroll_date >= ?", value)
 			case "end_date":
