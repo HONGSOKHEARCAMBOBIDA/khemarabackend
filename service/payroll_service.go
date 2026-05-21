@@ -9,7 +9,6 @@ import (
 	"mysql/request"
 	"mysql/response"
 	"mysql/utils"
-	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -19,7 +18,7 @@ type PayrollService interface {
 	CreatePayroll(userID int, input []request.PayrollRequestCreate) error
 	DeletePayroll(id int) error
 	GetDraftPayroll(branch_id int, currency_id int, payroll_type int) ([]response.PayrollDrafResponse, error)
-	GetPayroll(userID int, filters map[string]string) ([]response.PayrollResponse, error)
+	GetPayroll(userID int, filters map[string]string, pagination request.Pagination) ([]response.PayrollResponse, *model.PaginationMetadata, error)
 }
 
 type payrollservice struct {
@@ -446,16 +445,18 @@ func (s *payrollservice) GetDraftPayroll(branchID int, currencyID int, payrollTy
 	return payrollDraft, nil
 }
 
-func (s *payrollservice) GetPayroll(userID int, filters map[string]string) ([]response.PayrollResponse, error) {
+func (s *payrollservice) GetPayroll(userID int, filters map[string]string, pagination request.Pagination) ([]response.PayrollResponse, *model.PaginationMetadata, error) {
 	var payroll []response.PayrollResponse
 	var user model.User
 	if err := s.db.First(&user, userID).Error; err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	var role model.Role
 	if err := s.db.First(&role, user.RoleID).Error; err != nil {
-		return nil, err
+		return nil, nil, err
 	}
+	var totalCount int64
+	offset := (pagination.Page - 1) * pagination.PageSize
 	query := s.db.Table("payrolls p").
 		Select(`
 		p.id AS id,
@@ -507,10 +508,15 @@ func (s *payrollservice) GetPayroll(userID int, filters map[string]string) ([]re
 			if err := s.db.Model(&model.UserBranch{}).
 				Where("user_id =?", user.ID).
 				Pluck("branch_id", &branchIDs).Error; err != nil {
-				return nil, fmt.Errorf("failed to fetch user branches: %w", err)
+				return nil, nil, fmt.Errorf("failed to fetch user branches: %w", err)
 			}
 			if len(branchIDs) == 0 {
-				return []response.PayrollResponse{}, nil
+				return []response.PayrollResponse{}, &model.PaginationMetadata{
+					Page:       pagination.Page,
+					PageSize:   pagination.PageSize,
+					TotalCount: 0,
+					TotalPages: 0,
+				}, nil
 			}
 			query = query.Where("p.branch_id IN ?", branchIDs)
 		case 3:
@@ -532,91 +538,69 @@ func (s *payrollservice) GetPayroll(userID int, filters map[string]string) ([]re
 				query = query.Where("e.office_id =?", value)
 			case "department_id":
 				query = query.Where("p.department_id =?", value)
+			case "start_date":
+				query = query.Where("p.payroll_date >= ?", value)
+			case "end_date":
+				query = query.Where("p.payroll_date <= ?", value)
 
 			}
 		}
 	}
 
-	if err := query.Scan(&payroll).Error; err != nil {
-		return nil, err
+	if err := query.Count(&totalCount).Error; err != nil {
+		return nil, nil, err
 	}
-	if role.Level < 4 {
-		for i := range payroll {
-			payroll[i].ApproveStep1 = false
-			payroll[i].ApproveStep2 = false
-			payroll[i].ApproveStep3 = false
-			payroll[i].ApproveStep4 = false
+
+	if err := query.Offset(offset).Limit(pagination.PageSize).Scan(&payroll).Error; err != nil {
+		return nil, nil, err
+	}
+
+	for i := range payroll {
+		payroll[i].ShowApprovebutton = false
+	}
+
+	if role.Level >= 4 {
+		payrollIDs := make([]int, len(payroll))
+		for i, p := range payroll {
+			payrollIDs[i] = p.ID
 		}
-	} else {
-		var workflows []model.ApproveWorkflow
-		if err := s.db.Where("role_name = ?", role.Name).Find(&workflows).Error; err != nil || len(workflows) == 0 {
-			for i := range payroll {
-				payroll[i].ApproveStep1 = false
-				payroll[i].ApproveStep2 = false
-				payroll[i].ApproveStep3 = false
-				payroll[i].ApproveStep4 = false
-			}
-		} else {
-			// Which steps this role owns
-			allowedSteps := make(map[int]bool)
-			for _, w := range workflows {
-				allowedSteps[w.StepOrder] = true
-			}
 
-			// Fetch all approval records for these payrolls
-			payrollIDs := make([]int, len(payroll))
-			for i, p := range payroll {
-				payrollIDs[i] = p.ID
-			}
+		var approvals []model.PayrollApproval
+		if err := s.db.Select("payroll_id, step_order").
+			Where("payroll_id IN ?", payrollIDs).
+			Find(&approvals).Error; err != nil {
+			return nil, nil, fmt.Errorf("failed to fetch approvals: %w", err)
+		}
 
-			type ApprovalRow struct {
-				PayrollID int    `gorm:"column:payroll_id"`
-				StepOrder int    `gorm:"column:step_order"`
-				Status    string `gorm:"column:status"`
-			}
-			var approvals []ApprovalRow
-			s.db.Table("payroll_approvals").
-				Select("payroll_id, step_order, status").
-				Where("payroll_id IN ?", payrollIDs).
-				Scan(&approvals)
+		stepMap := make(map[int]int)
+		for _, a := range approvals {
+			stepMap[a.PayrollID] = a.StepOrder
+			// example
+			// 101:1
+		}
+		for i, p := range payroll {
+			nextStep := stepMap[p.ID] + 1
 
-			// Build map: payrollID -> stepOrder -> isApproved
-			approvedMap := make(map[int]map[int]bool)
-			for _, a := range approvals {
-				if approvedMap[a.PayrollID] == nil {
-					approvedMap[a.PayrollID] = make(map[int]bool)
-				}
-				if strings.EqualFold(a.Status, "APPROVED") {
-					approvedMap[a.PayrollID][a.StepOrder] = true
-				}
-			}
-
-			for i := range payroll {
-				pid := payroll[i].ID
-				steps := approvedMap[pid] // which steps are already approved for this payroll
-
-				// Step 1: show if role owns it (no prerequisite)
-				if allowedSteps[1] {
-					payroll[i].ApproveStep1 = true
-				}
-				// Step 2: show if role owns it AND step 1 already approved
-				if allowedSteps[2] {
-					payroll[i].ApproveStep2 = steps[1]
-				}
-				// Step 3: show if role owns it AND step 2 already approved
-				if allowedSteps[3] {
-					payroll[i].ApproveStep3 = steps[2]
-				}
-				// Step 4: show if role owns it AND step 3 already approved
-				if allowedSteps[4] {
-					payroll[i].ApproveStep4 = steps[3]
-				}
+			var workflow model.ApproveWorkflow
+			err := s.db.Where("role_name = ? AND step_order = ?", role.Name, nextStep).
+				First(&workflow).Error
+			if err == nil {
+				payroll[i].ShowApprovebutton = true
 			}
 		}
 	}
 	for i := range payroll {
 		payroll[i].PayrollDate = helper.FormatDate(payroll[i].PayrollDate)
 	}
-	return payroll, nil
+
+	totalPages := int(math.Ceil(float64(totalCount) / float64(pagination.PageSize)))
+	metadata := &model.PaginationMetadata{
+		Page:       pagination.Page,
+		PageSize:   pagination.PageSize,
+		TotalCount: totalCount,
+		TotalPages: totalPages,
+	}
+
+	return payroll, metadata, nil
 
 }

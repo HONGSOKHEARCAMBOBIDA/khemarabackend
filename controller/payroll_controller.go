@@ -85,6 +85,14 @@ func (cr *PayrollController) GetDraftPayroll(c *gin.Context) {
 }
 
 func (cr *PayrollController) GetPayroll(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 10
+	}
 	userID, ok := helper.GetUserID(c)
 	if !ok {
 		share.ResponseError(c, http.StatusUnauthorized, "please login")
@@ -97,11 +105,20 @@ func (cr *PayrollController) GetPayroll(c *gin.Context) {
 		"status_id":     c.Query("status_id"),
 		"office_id":     c.Query("office_id"),
 		"department_id": c.Query("department_id"),
+		"start_date":    c.Query("start_date"),
+		"end_date":      c.Query("end_date"),
 	}
-	payroll, err := cr.service.GetPayroll(userID, filters)
+	payroll, metadata, err := cr.service.GetPayroll(userID, filters, request.Pagination{
+		Page:     page,
+		PageSize: pageSize,
+	})
 	if err != nil {
 		share.ResponseError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	share.RespondDate(c, http.StatusOK, payroll)
+	c.JSON(http.StatusOK, gin.H{
+		"success":    true,
+		"data":       payroll,
+		"pagination": metadata,
+	})
 }

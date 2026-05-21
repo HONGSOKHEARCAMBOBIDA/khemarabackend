@@ -27,8 +27,5 @@ type PayrollResponse struct {
 	StatusName        string `json:"status_name"`
 	Note              string `json:"note"`
 	BranchName        string `json:"branch_name"`
-	ApproveStep1      bool   `json:"approve_step_1"`
-	ApproveStep2      bool   `json:"approve_step_2"`
-	ApproveStep3      bool   `json:"approve_step_3"`
-	ApproveStep4      bool   `json:"approve_step_4"`
+	ShowApprovebutton bool   `json:"show_approve_button"`
 }
