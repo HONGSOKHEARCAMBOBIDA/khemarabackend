@@ -9,6 +9,7 @@ import (
 	"mysql/request"
 	"mysql/response"
 	"mysql/utils"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -492,7 +493,8 @@ func (s *payrollservice) GetPayroll(userID int, filters map[string]string) ([]re
 		Joins("LEFT JOIN employee_profiles ep ON ep.employee_id = e.id").
 		Joins("LEFT JOIN bonus_types bo ON bo.id = p.bonus_type").
 		Joins("LEFT JOIN currencies c ON c.id = p.currency_id").
-		Joins("LEFT JOIN pay_roll_statuses prs ON prs.id = p.status_id")
+		Joins("LEFT JOIN pay_roll_statuses prs ON prs.id = p.status_id").
+		Joins("LEFT JOIN payroll_approvals pa ON pa.payroll_id = p.id")
 
 	if role.Level < 4 {
 		query = query.Where("e.id = ?", user.EmployeeID)
@@ -513,7 +515,6 @@ func (s *payrollservice) GetPayroll(userID int, filters map[string]string) ([]re
 			query = query.Where("p.branch_id IN ?", branchIDs)
 		case 3:
 		}
-
 	}
 
 	for key, value := range filters {
@@ -538,6 +539,80 @@ func (s *payrollservice) GetPayroll(userID int, filters map[string]string) ([]re
 
 	if err := query.Scan(&payroll).Error; err != nil {
 		return nil, err
+	}
+	if role.Level < 4 {
+		for i := range payroll {
+			payroll[i].ApproveStep1 = false
+			payroll[i].ApproveStep2 = false
+			payroll[i].ApproveStep3 = false
+			payroll[i].ApproveStep4 = false
+		}
+	} else {
+		var workflows []model.ApproveWorkflow
+		if err := s.db.Where("role_name = ?", role.Name).Find(&workflows).Error; err != nil || len(workflows) == 0 {
+			for i := range payroll {
+				payroll[i].ApproveStep1 = false
+				payroll[i].ApproveStep2 = false
+				payroll[i].ApproveStep3 = false
+				payroll[i].ApproveStep4 = false
+			}
+		} else {
+			// Which steps this role owns
+			allowedSteps := make(map[int]bool)
+			for _, w := range workflows {
+				allowedSteps[w.StepOrder] = true
+			}
+
+			// Fetch all approval records for these payrolls
+			payrollIDs := make([]int, len(payroll))
+			for i, p := range payroll {
+				payrollIDs[i] = p.ID
+			}
+
+			type ApprovalRow struct {
+				PayrollID int    `gorm:"column:payroll_id"`
+				StepOrder int    `gorm:"column:step_order"`
+				Status    string `gorm:"column:status"`
+			}
+			var approvals []ApprovalRow
+			s.db.Table("payroll_approvals").
+				Select("payroll_id, step_order, status").
+				Where("payroll_id IN ?", payrollIDs).
+				Scan(&approvals)
+
+			// Build map: payrollID -> stepOrder -> isApproved
+			approvedMap := make(map[int]map[int]bool)
+			for _, a := range approvals {
+				if approvedMap[a.PayrollID] == nil {
+					approvedMap[a.PayrollID] = make(map[int]bool)
+				}
+				if strings.EqualFold(a.Status, "APPROVED") {
+					approvedMap[a.PayrollID][a.StepOrder] = true
+				}
+			}
+
+			for i := range payroll {
+				pid := payroll[i].ID
+				steps := approvedMap[pid] // which steps are already approved for this payroll
+
+				// Step 1: show if role owns it (no prerequisite)
+				if allowedSteps[1] {
+					payroll[i].ApproveStep1 = true
+				}
+				// Step 2: show if role owns it AND step 1 already approved
+				if allowedSteps[2] {
+					payroll[i].ApproveStep2 = steps[1]
+				}
+				// Step 3: show if role owns it AND step 2 already approved
+				if allowedSteps[3] {
+					payroll[i].ApproveStep3 = steps[2]
+				}
+				// Step 4: show if role owns it AND step 3 already approved
+				if allowedSteps[4] {
+					payroll[i].ApproveStep4 = steps[3]
+				}
+			}
+		}
 	}
 	for i := range payroll {
 		payroll[i].PayrollDate = helper.FormatDate(payroll[i].PayrollDate)
