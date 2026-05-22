@@ -122,3 +122,17 @@ func (cr *PayrollController) GetPayroll(c *gin.Context) {
 		"pagination": metadata,
 	})
 }
+
+func (cr *PayrollController) ApprovePayroll(c *gin.Context) {
+	idparam := c.Param("id")
+	id, err := strconv.Atoi(idparam)
+	if err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := cr.service.Approve(id); err != nil {
+		share.ResponseError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	share.ResponseSuccess(c, http.StatusOK, "Approved")
+}

@@ -19,6 +19,7 @@ type PayrollService interface {
 	DeletePayroll(id int) error
 	GetDraftPayroll(branch_id int, currency_id int, payroll_type int) ([]response.PayrollDrafResponse, error)
 	GetPayroll(userID int, filters map[string]string, pagination request.Pagination) ([]response.PayrollResponse, *model.PaginationMetadata, error)
+	Approve(id int) error
 }
 
 type payrollservice struct {
@@ -369,7 +370,7 @@ func (s *payrollservice) DeletePayroll(id int) error {
 		return err
 	}
 
-	if err := tx.Delete(&model.Payroll{}, id).Error; err != nil {
+	if err := tx.Where("status_id != ?", 1).Delete(&model.Payroll{}, id).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -609,4 +610,44 @@ func (s *payrollservice) GetPayroll(userID int, filters map[string]string, pagin
 
 	return payroll, metadata, nil
 
+}
+
+func (s *payrollservice) Approve(id int) error {
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	var payrollapproval model.PayrollApproval
+	if err := tx.Where("payroll_id = ?", id).First(&payrollapproval).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	newStep := payrollapproval.StepOrder + 1
+
+	update := map[string]interface{}{
+		"step_order": newStep,
+	}
+	if err := tx.Model(&model.PayrollApproval{}).Where("id = ?", payrollapproval.ID).Updates(update).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if newStep >= 4 {
+		update := map[string]interface{}{
+			"status_id": 2,
+		}
+		if err := tx.Model(&model.Payroll{}).Where("id = ?", id).Updates(update).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	return tx.Commit().Error
 }

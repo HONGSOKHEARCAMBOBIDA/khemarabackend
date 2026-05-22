@@ -138,10 +138,10 @@ const (
 	ViewPayrollStatus = "view.payroll.status"
 
 	// Payroll
-	ViewPayroll   = "view.payroll"
-	AddPayroll    = "add.payroll"
-	DeletePayroll = "delete.payroll"
-
+	ViewPayroll    = "view.payroll"
+	AddPayroll     = "add.payroll"
+	DeletePayroll  = "delete.payroll"
+	ApprovePayroll = "approve.payroll"
 	// Recieve
 	ViewRecieve = "view.recieve"
 )
