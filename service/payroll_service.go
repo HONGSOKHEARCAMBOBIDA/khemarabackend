@@ -370,7 +370,7 @@ func (s *payrollservice) DeletePayroll(id int) error {
 		return err
 	}
 
-	if err := tx.Where("status_id != ?", 1).Delete(&model.Payroll{}, id).Error; err != nil {
+	if err := tx.Where("status_id != ?", 2).Delete(&model.Payroll{}, id).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
