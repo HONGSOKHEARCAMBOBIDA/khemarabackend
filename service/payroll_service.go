@@ -81,7 +81,7 @@ func (s *payrollservice) CreatePayroll(userID int, input []request.PayrollReques
 			PayrollID:  p.ID,
 			ApproveBy:  userID,
 			Status:     "APPROVED",
-			Comment:    "FIRST STEP",
+			Comment:    "",
 			ActionDate: now,
 			StepOrder:  1,
 		}
