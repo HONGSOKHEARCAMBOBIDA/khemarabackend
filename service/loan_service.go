@@ -343,20 +343,24 @@ func (s *loanservice) DeleteLoan(id int) error {
 	}()
 
 	var loan model.Loan
-
 	if err := tx.First(&loan, id).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
+	var receive model.Recieve
+	err := tx.Where("loan_id = ?", id).First(&receive).Error
 
-	today := time.Now().Format("2006-01-02")
-
-	if loan.ApproveDate != today {
+	if err == nil {
 		tx.Rollback()
-		return fmt.Errorf("can only delete loans approved today")
+		return fmt.Errorf("cannot delete loan that already has a receive record")
 	}
 
-	if err := tx.Where("loan_id =?", id).Delete(&model.Schedule{}).Error; err != nil {
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		tx.Rollback()
+		return err
+	}
+
+	if err := tx.Where("loan_id = ?", id).Delete(&model.Schedule{}).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -365,5 +369,6 @@ func (s *loanservice) DeleteLoan(id int) error {
 		tx.Rollback()
 		return err
 	}
+
 	return tx.Commit().Error
 }
