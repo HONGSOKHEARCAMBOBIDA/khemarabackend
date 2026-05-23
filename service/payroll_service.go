@@ -504,7 +504,7 @@ func (s *payrollservice) GetPayroll(userID int, filters map[string]string, pagin
 		Joins("LEFT JOIN pay_roll_statuses prs ON prs.id = p.status_id").
 		Joins("LEFT JOIN payroll_approvals pa ON pa.payroll_id = p.id")
 
-	if role.Level < 4 {
+	if role.Level < 5 {
 		query = query.Where("e.id = ?", user.EmployeeID)
 	} else {
 		switch user.ManageBranch {

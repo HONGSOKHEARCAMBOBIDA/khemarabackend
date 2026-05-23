@@ -160,10 +160,10 @@ func SetupRoutes(r *gin.Engine) {
 		auth.POST(route.CreateEducation, middleware.PermissionMiddleware(permission.EditEmployee), employeecontroller.CreateEmployeeEducation)
 		auth.PUT(route.EditWorkExperience, middleware.PermissionMiddleware(permission.EditEmployee), employeecontroller.UpdateEmployeeWorkExperience)
 		auth.POST(route.CreateWorkExperience, middleware.PermissionMiddleware(permission.EditEmployee), employeecontroller.CreateEmployeeWorkExperience)
-		auth.PUT(route.EditSalary, middleware.PermissionMiddleware(permission.EditEmployee), employeecontroller.UpdateSalary)
-		auth.POST(route.CreateSalary, middleware.PermissionMiddleware(permission.EditEmployee), employeecontroller.CreateSalary)
-		auth.PUT(route.ChangeShiftPattern, middleware.PermissionMiddleware(permission.EditEmployee), employeecontroller.ChangeShiftPattern)
-		auth.PUT(route.ChangeShift, middleware.PermissionMiddleware(permission.EditEmployee), employeecontroller.ChangeShift)
+		auth.PUT(route.EditSalary, middleware.PermissionMiddleware(permission.EditSalary), employeecontroller.UpdateSalary)
+		auth.POST(route.CreateSalary, middleware.PermissionMiddleware(permission.AddSalary), employeecontroller.CreateSalary)
+		auth.PUT(route.ChangeShiftPattern, middleware.PermissionMiddleware(permission.ChangeDayOff), employeecontroller.ChangeShiftPattern)
+		auth.PUT(route.ChangeShift, middleware.PermissionMiddleware(permission.ChangeShiftPattern), employeecontroller.ChangeShift)
 
 		// StatusAttendace
 		auth.GET(route.ViewStatusAttendance, middleware.PermissionMiddleware(permission.ViewStatusAttendance), statusattendance.GetStatusAttendanceLogService)

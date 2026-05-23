@@ -22,6 +22,12 @@ func NewEmployeeController() EmployeeController {
 }
 
 func (cr *EmployeeController) GetEmployee(c *gin.Context) {
+	userID, ok := helper.GetUserID(c)
+	if !ok {
+		share.ResponseError(c, http.StatusBadRequest, "Please Login")
+		return
+	}
+
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
 	if page < 1 {
@@ -38,7 +44,7 @@ func (cr *EmployeeController) GetEmployee(c *gin.Context) {
 		"office_id":     c.Query("office_id"),
 		"is_promote":    c.Query("is_promote"),
 	}
-	employee, metadata, err := cr.service.GetEmployee(filter, request.Pagination{
+	employee, metadata, err := cr.service.GetEmployee(userID, filter, request.Pagination{
 		Page:     page,
 		PageSize: pageSize,
 	})

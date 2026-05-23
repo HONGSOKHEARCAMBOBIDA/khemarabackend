@@ -16,7 +16,7 @@ import (
 type AttendanceService interface {
 	CheckIn(id int, input request.LocationRequest) error
 	CheckOut(id int, input request.LocationRequest) error
-	GetAttendance(filter map[string]string, pagination request.Pagination) ([]response.AttendanceResponse, *model.PaginationMetadata, error)
+	GetAttendance(userID int, filter map[string]string, pagination request.Pagination) ([]response.AttendanceResponse, *model.PaginationMetadata, error)
 }
 
 type attendanceservice struct {
@@ -405,11 +405,18 @@ func (s *attendanceservice) CheckOut(id int, input request.LocationRequest) erro
 	return tx.Commit().Error
 }
 
-func (s *attendanceservice) GetAttendance(filter map[string]string, pagination request.Pagination) ([]response.AttendanceResponse, *model.PaginationMetadata, error) {
+func (s *attendanceservice) GetAttendance(userID int, filter map[string]string, pagination request.Pagination) ([]response.AttendanceResponse, *model.PaginationMetadata, error) {
 	var attendances []response.AttendanceResponse
 	var totalCount int64
 	offset := (pagination.Page - 1) * pagination.PageSize
-
+	var user model.User
+	if err := s.db.First(&user, userID).Error; err != nil {
+		return nil, nil, err
+	}
+	var role model.Role
+	if err := s.db.First(&role, user.RoleID).Error; err != nil {
+		return nil, nil, err
+	}
 	query := s.db.Table("employees e").
 		Select(`
 			e.id AS employee_id,
@@ -431,6 +438,31 @@ func (s *attendanceservice) GetAttendance(filter map[string]string, pagination r
 		Joins("LEFT JOIN offices o ON o.id = e.office_id").
 		Joins("LEFT JOIN employee_profiles ep ON ep.employee_id = e.id").
 		Group("e.id, e.code, e.name_en, e.name_kh, e.gender, p.id, p.display_name, d.id, d.display_name, o.id, o.name, ep.profile_image")
+
+	if role.Level < 4 {
+		query = query.Where("alog.employee_id =?", user.EmployeeID)
+	} else {
+		switch user.ManageBranch {
+		case 1:
+			query = query.Where("alog.branch_id =?", user.BranchID)
+		case 2:
+			var branchIDs []int
+			if err := s.db.Model(&model.UserBranch{}).
+				Where("user_id =?", userID).Pluck("branch_id", &branchIDs).Error; err != nil {
+				return nil, nil, fmt.Errorf("failed to fetch user branches: %w", err)
+			}
+			if len(branchIDs) == 0 {
+				return []response.AttendanceResponse{}, &model.PaginationMetadata{
+					Page:       pagination.Page,
+					PageSize:   pagination.PageSize,
+					TotalCount: 0,
+					TotalPages: 0,
+				}, nil
+			}
+			query = query.Where("alog.branch_id IN ?", branchIDs)
+		case 3:
+		}
+	}
 
 	checkDateFrom := filter["check_date_from"]
 	checkDateTo := filter["check_date_to"]

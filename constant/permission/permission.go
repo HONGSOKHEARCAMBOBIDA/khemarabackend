@@ -144,4 +144,12 @@ const (
 	ApprovePayroll = "approve.payroll"
 	// Recieve
 	ViewRecieve = "view.recieve"
+
+	// Salary
+	EditSalary = "edit.salary"
+	AddSalary  = "add.salary"
+
+	// Shift
+	ChangeShiftPattern = "change.shift.pattern"
+	ChangeDayOff       = "change.day.off"
 )

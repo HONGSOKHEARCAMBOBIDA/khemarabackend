@@ -58,6 +58,11 @@ func (cr *AttendanceController) CheckOut(c *gin.Context) {
 }
 
 func (cr *AttendanceController) GetAttendance(c *gin.Context) {
+	userID, ok := helper.GetUserID(c)
+	if !ok {
+		share.ResponseError(c, http.StatusUnauthorized, "please login")
+		return
+	}
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
 	if page < 1 {
@@ -80,7 +85,7 @@ func (cr *AttendanceController) GetAttendance(c *gin.Context) {
 		"check_date_from":    c.Query("check_date_from"),
 		"check_date_to":      c.Query("check_date_to"),
 	}
-	attendance, metadata, err := cr.service.GetAttendance(filter, request.Pagination{
+	attendance, metadata, err := cr.service.GetAttendance(userID, filter, request.Pagination{
 		Page:     page,
 		PageSize: pageSize,
 	})

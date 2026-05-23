@@ -16,7 +16,7 @@ import (
 )
 
 type EmployeeService interface {
-	GetEmployee(filters map[string]string, pagination request.Pagination) ([]response.EmployeeResponseDetail, *model.PaginationMetadata, error)
+	GetEmployee(userID int, filters map[string]string, pagination request.Pagination) ([]response.EmployeeResponseDetail, *model.PaginationMetadata, error)
 	UpdateEmployee(id int, input request.EmployeeEmpoyeeProfileRequestUpdate, c *gin.Context, userID int) error
 	UpdateEmployeeEducation(id int, input request.EmployeeEducationRequestUpdate, c *gin.Context) error
 	CreateEmployeeEducation(input request.EmployeeEducationRequestCreate, c *gin.Context) error
@@ -38,7 +38,7 @@ func NewEmployeeService() EmployeeService {
 	}
 }
 
-func (s *employeeservice) GetEmployee(filters map[string]string, pagination request.Pagination) ([]response.EmployeeResponseDetail, *model.PaginationMetadata, error) {
+func (s *employeeservice) GetEmployee(userID int, filters map[string]string, pagination request.Pagination) ([]response.EmployeeResponseDetail, *model.PaginationMetadata, error) {
 	var employees []response.EmployeeResponseDetail
 	var totalCount int64
 
@@ -47,7 +47,14 @@ func (s *employeeservice) GetEmployee(filters map[string]string, pagination requ
 	// pagination.Page is current page number
 	// pagination.PageSize is number record per page
 	// formula calculates how many records to skip before fetching data
-
+	var user model.User
+	if err := s.db.First(&user, userID).Error; err != nil {
+		return nil, nil, err
+	}
+	var role model.Role
+	if err := s.db.First(&role, user.RoleID).Error; err != nil {
+		return nil, nil, err
+	}
 	query := s.db.Table("users u").
 		Select(`
 			u.id AS user_id,
@@ -68,6 +75,29 @@ func (s *employeeservice) GetEmployee(filters map[string]string, pagination requ
 		Joins("LEFT JOIN employees e ON e.id = u.employee_id").
 		Joins("LEFT JOIN positions p ON p.id = e.position_id").Order("u.id DESC")
 
+	if role.Level < 4 {
+		query = query.Where("u.id =?", user.ID)
+	} else {
+		switch user.ManageBranch {
+		case 1:
+			query = query.Where("u.branch_id =?", user.BranchID)
+		case 2:
+			var branchIDs []int
+			if err := s.db.Model(&model.UserBranch{}).Where("user_id =?", user.ID).Pluck("branch_id", &branchIDs).Error; err != nil {
+				return nil, nil, fmt.Errorf("failed to fetch user branches: %w", err)
+			}
+			if len(branchIDs) == 0 {
+				return []response.EmployeeResponseDetail{}, &model.PaginationMetadata{
+					Page:       pagination.Page,
+					PageSize:   pagination.PageSize,
+					TotalCount: 0,
+					TotalPages: 0,
+				}, nil
+			}
+			query = query.Where("u.branch_id IN ?", branchIDs)
+		case 3:
+		}
+	}
 	for key, value := range filters {
 		if value != "" {
 			switch key {
