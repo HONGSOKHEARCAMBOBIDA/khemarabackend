@@ -102,7 +102,8 @@ const (
 	AddUser          = "add.user"
 	UpdateUser       = "update.user/:id"
 	ChangeStatusUser = "change.status.user/:id"
-
+	ChangePassword   = "change.password/:id"
+	ViewUserByID     = "view.user.by.id/:id"
 	// Part
 	ViewPart = "view.part"
 

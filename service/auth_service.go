@@ -22,6 +22,9 @@ type AuthService interface {
 	Login(input request.AuthRequest, c *gin.Context) (*response.AuthResponse, error)
 	Register(id int, input request.RegisterRequest, c *gin.Context) error
 	GetUserByBranch(id int) ([]response.UserResponse, error)
+	UpdateUser(id int, input request.UserRequestUpdate) error
+	ChangePassword(id int, input request.NewPassword) error
+	GetUserByID(id int) ([]response.UserResponseUpdate, error)
 }
 
 type authservice struct {
@@ -389,4 +392,131 @@ func (s *authservice) Register(id int, input request.RegisterRequest, c *gin.Con
 	}
 	return nil
 
+}
+
+func (s *authservice) UpdateUser(id int, input request.UserRequestUpdate) error {
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	result := tx.Model(&model.User{}).Where("id = ?", id).Updates(map[string]interface{}{
+		"branch_id":     input.BranchID,
+		"role_id":       input.RoleID,
+		"manage_branch": input.ManageBranch,
+	})
+
+	if result.Error != nil {
+		tx.Rollback()
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		tx.Rollback()
+		return fmt.Errorf("user with id %d not found", id)
+	}
+
+	if err := tx.Where("user_id = ?", id).Delete(&model.UserPart{}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	for _, partID := range input.PartIDs {
+		if err := tx.Create(&model.UserPart{
+			UserID: id,
+			PartID: uint(partID),
+		}).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	if err := tx.Where("user_id = ?", id).Delete(&model.UserBranch{}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if input.ManageBranch == 2 {
+		for _, branchID := range input.BranchIDs {
+			if err := tx.Create(&model.UserBranch{
+				UserID:   uint(id),
+				BranchID: uint(branchID),
+			}).Error; err != nil {
+				tx.Rollback()
+				return err
+			}
+		}
+	}
+
+	return tx.Commit().Error
+}
+
+func (s *authservice) ChangePassword(id int, input request.NewPassword) error {
+
+	var user model.User
+	if err := s.db.Where("id = ?", id).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return fmt.Errorf("user with id %d not found", id)
+		}
+		return err
+	}
+	hash := utils.HasPassword(input.NewPassword)
+	if err := s.db.Model(&user).Update("password", hash).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *authservice) GetUserByID(id int) ([]response.UserResponseUpdate, error) {
+	var users []response.UserResponseUpdate
+
+	if err := s.db.Table("users u").
+		Select(`
+            u.id AS id,
+            u.username AS username,
+            b.id AS branch_id,
+            b.name AS branch_name,
+            r.id AS role_id,
+            r.name AS role_name,
+            u.manage_branch AS manage_branch
+        `).
+		Joins("LEFT JOIN branches b ON b.id = u.branch_id").
+		Joins("LEFT JOIN roles r ON r.id = u.role_id").
+		Where("u.id = ?", id).
+		Scan(&users).Error; err != nil {
+		return nil, err
+	}
+
+	if len(users) == 0 {
+		return nil, fmt.Errorf("user with id %d not found", id)
+	}
+
+	for i := range users {
+		var userParts []model.UserPart
+		if err := s.db.Table("user_parts up").
+			Select("up.id AS id, up.user_id AS user_id, up.part_id AS part_id").
+			Where("up.user_id = ?", id).
+			Scan(&userParts).Error; err != nil {
+			return nil, err
+		}
+		users[i].Userpart = userParts
+
+		var userBranches []model.UserBranch
+		if err := s.db.Table("user_branches ub").
+			Select("ub.id AS id, ub.user_id AS user_id, ub.branch_id AS branch_id").
+			Where("ub.user_id = ?", id).
+			Scan(&userBranches).Error; err != nil {
+			return nil, err
+		}
+		users[i].UserBranch = userBranches
+	}
+
+	return users, nil
 }

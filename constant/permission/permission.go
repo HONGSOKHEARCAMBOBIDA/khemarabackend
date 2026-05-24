@@ -92,6 +92,7 @@ const (
 	AddUser          = "add.user"
 	UpdateUser       = "update.user"
 	ChangeStatusUser = "change.status.user"
+	ChangePassword   = "change.password"
 
 	// Part
 	ViewPart = "view.part"

@@ -149,6 +149,9 @@ func SetupRoutes(r *gin.Engine) {
 		// User
 		auth.POST(route.AddUser, middleware.PermissionMiddleware(permission.AddUser), authcontroller.Register)
 		auth.GET(route.ViewUserByBranch, middleware.PermissionMiddleware(permission.ViewUser), authcontroller.GetUserByBranch)
+		auth.PUT(route.UpdateUser, middleware.PermissionMiddleware(permission.UpdateUser), authcontroller.UpdateUser)
+		auth.PUT(route.ChangePassword, middleware.PermissionMiddleware(permission.ChangePassword), authcontroller.ChangePassword)
+		auth.GET(route.ViewUserByID, middleware.PermissionMiddleware(permission.ViewUser), authcontroller.GetUserByID)
 
 		// Part
 		auth.GET(route.ViewPart, middleware.PermissionMiddleware(permission.ViewPart), partcontroller.GetPart)

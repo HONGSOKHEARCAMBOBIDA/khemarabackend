@@ -68,3 +68,54 @@ func (cr *AuthController) GetUserByBranch(c *gin.Context) {
 	}
 	share.RespondDate(c, http.StatusOK, data)
 }
+
+func (cr *AuthController) UpdateUser(c *gin.Context) {
+	userID, ok := helper.GetUserID(c)
+	if !ok {
+		share.ResponseError(c, http.StatusBadRequest, "please login")
+		return
+	}
+	var input request.UserRequestUpdate
+	if err := c.ShouldBindJSON(&input); err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := cr.service.UpdateUser(userID, input); err != nil {
+		share.ResponseError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	share.ResponseSuccess(c, http.StatusOK, "updated")
+}
+
+func (cr *AuthController) ChangePassword(c *gin.Context) {
+	userID, ok := helper.GetUserID(c)
+	if !ok {
+		share.ResponseError(c, http.StatusBadRequest, "please login")
+		return
+	}
+	var input request.NewPassword
+	if err := c.ShouldBindJSON(&input); err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := cr.service.ChangePassword(userID, input); err != nil {
+		share.ResponseError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+	share.ResponseSuccess(c, http.StatusOK, "password changed")
+}
+
+func (cr *AuthController) GetUserByID(c *gin.Context) {
+	idparam := c.Param("id")
+	id, err := strconv.Atoi(idparam)
+	if err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	data, err := cr.service.GetUserByID(id)
+	if err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	share.RespondDate(c, http.StatusOK, data)
+}
