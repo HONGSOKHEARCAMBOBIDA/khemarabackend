@@ -149,7 +149,7 @@ const (
 	// Salary
 	EditSalary = "edit.salary"
 	AddSalary  = "add.salary"
-
+	ViewSalary = "view.salary"
 	// Shift
 	ChangeShiftPattern = "change.shift.pattern"
 	ChangeDayOff       = "change.day.off"

@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"log"
 	"mysql/config"
 	"mysql/helper"
 	"mysql/model"
@@ -91,12 +92,12 @@ func (s *authservice) Login(input request.AuthRequest, c *gin.Context) (*respons
 		return nil, err
 	}
 
-	// var permissions []model.Permission
+	var permissions []model.Permission
 
-	// if err := s.db.Table("permissions p").Select("p.id AS id,p.name AS name,p.display_name AS display_name,p.group_name AS group_name,p.short_name AS short_name").
-	// 	Joins("JOIN role_has_permissions rhp ON rhp.permission_id = p.id").Where("rhp.role_id =?", user.RoleID).Scan(&permissions).Error; err != nil {
-	// 	return nil, err
-	// }
+	if err := s.db.Table("permissions p").Select("p.id AS id,p.name AS name").
+		Joins("JOIN role_has_permissions rhp ON rhp.permission_id = p.id").Where("rhp.role_id =? AND p.name IN ?", user.RoleID, []string{"update.user", "add.user", "view.salary", "edit.salary", "add.salary", "add.loan", "add.payroll"}).Scan(&permissions).Error; err != nil {
+		return nil, err
+	}
 
 	claims := jwt.MapClaims{
 		"user_id": user.ID,
@@ -123,7 +124,7 @@ func (s *authservice) Login(input request.AuthRequest, c *gin.Context) (*respons
 		RoleID:       uint(user.RoleID),
 		Parts:        userparts,
 		ManageBranch: user.ManageBranch,
-		// Permissions:  permissions,
+		Permissions:  permissions,
 	}
 
 	return resp, nil
@@ -395,6 +396,7 @@ func (s *authservice) Register(id int, input request.RegisterRequest, c *gin.Con
 }
 
 func (s *authservice) UpdateUser(id int, input request.UserRequestUpdate) error {
+	log.Printf("[UpdateUser] id=%d input=%+v", id, input)
 	tx := s.db.Begin()
 	if tx.Error != nil {
 		return tx.Error
@@ -417,14 +419,10 @@ func (s *authservice) UpdateUser(id int, input request.UserRequestUpdate) error 
 		return result.Error
 	}
 
-	if result.RowsAffected == 0 {
-		tx.Rollback()
-		return fmt.Errorf("user with id %d not found", id)
-	}
-
 	if err := tx.Where("user_id = ?", id).Delete(&model.UserPart{}).Error; err != nil {
 		tx.Rollback()
 		return err
+
 	}
 
 	for _, partID := range input.PartIDs {
@@ -443,7 +441,7 @@ func (s *authservice) UpdateUser(id int, input request.UserRequestUpdate) error 
 	}
 
 	if input.ManageBranch == 2 {
-		for _, branchID := range input.BranchIDs {
+		for _, branchID := range *input.BranchIDs {
 			if err := tx.Create(&model.UserBranch{
 				UserID:   uint(id),
 				BranchID: uint(branchID),

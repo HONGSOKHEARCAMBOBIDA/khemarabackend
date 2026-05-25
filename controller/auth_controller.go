@@ -70,9 +70,10 @@ func (cr *AuthController) GetUserByBranch(c *gin.Context) {
 }
 
 func (cr *AuthController) UpdateUser(c *gin.Context) {
-	userID, ok := helper.GetUserID(c)
-	if !ok {
-		share.ResponseError(c, http.StatusBadRequest, "please login")
+	idparam := c.Param("id")
+	id, err := strconv.Atoi(idparam)
+	if err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 	var input request.UserRequestUpdate
@@ -80,7 +81,7 @@ func (cr *AuthController) UpdateUser(c *gin.Context) {
 		share.ResponseError(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	if err := cr.service.UpdateUser(userID, input); err != nil {
+	if err := cr.service.UpdateUser(id, input); err != nil {
 		share.ResponseError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -88,9 +89,10 @@ func (cr *AuthController) UpdateUser(c *gin.Context) {
 }
 
 func (cr *AuthController) ChangePassword(c *gin.Context) {
-	userID, ok := helper.GetUserID(c)
-	if !ok {
-		share.ResponseError(c, http.StatusBadRequest, "please login")
+	idparam := c.Param("id")
+	id, err := strconv.Atoi(idparam)
+	if err != nil {
+		share.ResponseError(c, http.StatusBadRequest, err.Error())
 		return
 	}
 	var input request.NewPassword
@@ -98,7 +100,7 @@ func (cr *AuthController) ChangePassword(c *gin.Context) {
 		share.ResponseError(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	if err := cr.service.ChangePassword(userID, input); err != nil {
+	if err := cr.service.ChangePassword(id, input); err != nil {
 		share.ResponseError(c, http.StatusInternalServerError, err.Error())
 		return
 	}
