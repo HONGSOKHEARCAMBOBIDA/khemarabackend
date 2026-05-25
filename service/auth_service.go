@@ -95,7 +95,7 @@ func (s *authservice) Login(input request.AuthRequest, c *gin.Context) (*respons
 	var permissions []model.Permission
 
 	if err := s.db.Table("permissions p").Select("p.id AS id,p.name AS name").
-		Joins("JOIN role_has_permissions rhp ON rhp.permission_id = p.id").Where("rhp.role_id =? AND p.name IN ?", user.RoleID, []string{"update.user", "add.user", "view.salary", "edit.salary", "add.salary", "add.loan", "add.payroll"}).Scan(&permissions).Error; err != nil {
+		Joins("JOIN role_has_permissions rhp ON rhp.permission_id = p.id").Where("rhp.role_id =? AND p.name IN ?", user.RoleID, []string{"update.user", "add.user", "edit.salary", "add.salary", "add.loan", "add.payroll", "change.shift.pattern", "change.day.off"}).Scan(&permissions).Error; err != nil {
 		return nil, err
 	}
 
