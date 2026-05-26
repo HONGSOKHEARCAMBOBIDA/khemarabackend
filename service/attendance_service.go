@@ -430,14 +430,16 @@ func (s *attendanceservice) GetAttendance(userID int, filter map[string]string, 
 			d.display_name AS department_display_name,
 			o.id AS office_id,
 			o.name AS office_name,
-			ep.profile_image AS profile
+			ep.profile_image AS profile,
+			b.name AS branch_name
 		`).
 		Joins("INNER JOIN attendance_logs alog ON alog.employee_id = e.id").
+		Joins("LEFT JOIN branches b ON b.id = alog.branch_id").
 		Joins("LEFT JOIN positions p ON p.id = e.position_id").
 		Joins("LEFT JOIN departments d ON d.id = p.department_id").
 		Joins("LEFT JOIN offices o ON o.id = e.office_id").
 		Joins("LEFT JOIN employee_profiles ep ON ep.employee_id = e.id").
-		Group("e.id, e.code, e.name_en, e.name_kh, e.gender, p.id, p.display_name, d.id, d.display_name, o.id, o.name, ep.profile_image")
+		Group("e.id, e.code, e.name_en, e.name_kh, e.gender, p.id, p.display_name, d.id, d.display_name, o.id, o.name, ep.profile_image,b.name")
 
 	if role.Level < 4 {
 		query = query.Where("alog.employee_id =?", user.EmployeeID)
@@ -482,10 +484,12 @@ func (s *attendanceservice) GetAttendance(userID int, filter map[string]string, 
 		switch key {
 		case "name":
 			query = query.Where("e.name_kh LIKE ? OR e.name_en LIKE ?", "%"+value+"%", "%"+value+"%")
+		case "branch_id":
+			query = query.Where("alog.branch_id = ?", value)
 		case "department_id":
 			query = query.Where("d.id = ?", value)
 		case "employee_id":
-			query = query.Where("e.id = ?", value)
+			query = query.Where("alog.employee_id = ?", value)
 		case "office_id":
 			query = query.Where("e.office_id = ?", value)
 

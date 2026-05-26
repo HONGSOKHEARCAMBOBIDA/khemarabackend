@@ -15,4 +15,5 @@ type AttendanceResponse struct {
 	OfficeName            string                  `json:"office_name"`
 	Profile               string                  `json:"profile"`
 	AttendanceLogResponse []AttendanceLogResponse `json:"attendancelogresponse" gorm:"-"`
+	BranchName            string                  `json:"branch_name" gorm:"column:branch_name"`
 }

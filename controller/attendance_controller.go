@@ -73,6 +73,7 @@ func (cr *AttendanceController) GetAttendance(c *gin.Context) {
 	}
 	filter := map[string]string{
 		"name":               c.Query("name"),
+		"branch_id":          c.Query("branch_id"),
 		"department_id":      c.Query("department_id"),
 		"employee_id":        c.Query("employee_id"),
 		"office_id":          c.Query("office_id"),
