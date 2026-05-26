@@ -49,6 +49,12 @@ func (s *leaveservice) CreateLeave(id int, input request.LeaveCreate) error {
 		return fmt.Errorf("failed to fetch user: %w", err)
 	}
 
+	var emplog model.Employee
+	if err := tx.First(&emplog, user.EmployeeID).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
 	newLeave := model.Leave{
 		EmployeeID:    user.EmployeeID,
 		LeaveTypeID:   input.LeaveTypeID,
@@ -83,6 +89,44 @@ func (s *leaveservice) CreateLeave(id int, input request.LeaveCreate) error {
 		tx.Rollback()
 		return fmt.Errorf("failed to create leave duration: %w", err)
 	}
+
+	var employyeeapprove model.Employee
+	if err := tx.First(&employyeeapprove, input.ApproveByID).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	var durationText string
+
+	for i := range input.DurationVlaue {
+		var durationunit model.LeaveDurationUnit
+		if err := tx.First(&durationunit, input.DurationUnitID[i]).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
+		durationText += fmt.Sprintf(
+			" %.0f %s",
+			input.DurationVlaue[i],
+			durationunit.NameKh,
+		)
+	}
+
+	message := fmt.Sprintf(
+		"សូមជម្រាបសួរលោកគ្រូ អ្នកគ្រូ!\n"+
+			"ខ្ញុំបាទ/នាងខ្ញុំ ឈ្មោះៈ %s\n"+
+			"សុំអនុញ្ញាតច្បាប់ឈប់សម្រាក %s\n"+
+			"ចាប់ពីថ្ងៃទី %s រហូតដល់ថ្ងៃទី %s នឹងចូលបម្រើការងារវិញនៅថ្ងៃទី %s\n"+
+			"*មូលហេតុៈ %s\n"+
+			"សូមអរគុណ",
+		emplog.NameKh,
+		durationText,
+		input.StartDate,
+		input.EndDate,
+		input.BackDate,
+		input.Description,
+	)
+
+	go helper.SendTelegramMessage(message, employyeeapprove.TelegramChatID)
 
 	return tx.Commit().Error
 }

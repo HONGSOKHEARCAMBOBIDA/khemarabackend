@@ -19,9 +19,9 @@ func parseInt64(s string) int64 {
 	return v
 }
 
-func SendTelegramMessage(message string) error {
+func SendTelegramMessage(message string, chatID string) error {
 	botToken := "8619235719:AAHGC0_NVzIm9Gchc0tzD7nbGZ9Grv5xyG4"
-	chatID := "-1003747714579"
+	//	chatID := "-1003747714579"
 
 	url := "https://api.telegram.org/bot" + botToken + "/sendMessage"
 

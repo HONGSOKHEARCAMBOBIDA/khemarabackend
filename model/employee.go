@@ -16,4 +16,5 @@ type Employee struct {
 	OfficeID       int    `json:"office_id"`
 	CreateBy       int    `json:"create_by"`
 	UpdateBy       int    `json:"update_by"`
+	TelegramChatID string `json:"telegram_chat_id"`
 }
