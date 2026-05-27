@@ -205,3 +205,27 @@ func (cr *EmployeeController) ChangeShift(c *gin.Context) {
 	}
 	share.ResponseSuccess(c, http.StatusOK, "update")
 }
+
+func (cr *EmployeeController) ChangeSingleShift(c *gin.Context) {
+	id := c.Query("id")
+	shiftid := c.Query("shift_id")
+
+	idint, err := strconv.Atoi(id)
+	if err != nil {
+		share.ResponseError(c, http.StatusBadRequest, "invalid id")
+		return
+	}
+
+	shiftidint, err := strconv.Atoi(shiftid)
+	if err != nil {
+		share.ResponseError(c, http.StatusBadRequest, "invalid shift_id")
+		return
+	}
+
+	if err := cr.service.ChangeSingleShift(idint, shiftidint); err != nil {
+		share.ResponseError(c, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	share.ResponseSuccess(c, http.StatusOK, "updated")
+}

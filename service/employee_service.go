@@ -26,6 +26,7 @@ type EmployeeService interface {
 	CreateSalary(input request.SalaryRequestCreate) error
 	ChangeShiftPattern(id int) error
 	ChangeShift(input request.ShiftPatternRequestUpdate) error
+	ChangeSingleShift(id int, newshiftid int) error
 }
 
 type employeeservice struct {
@@ -780,5 +781,32 @@ func (s *employeeservice) ChangeShift(input request.ShiftPatternRequestUpdate) e
 		return err
 	}
 
+	return nil
+}
+
+func (s *employeeservice) ChangeSingleShift(id int, newshiftid int) error {
+	tx := s.db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	var shiftpattern model.ShiftPattern
+	if err := tx.First(&shiftpattern, id).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+	shiftpattern.ShiftID = newshiftid
+	if err := tx.Save(&shiftpattern).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := tx.Commit().Error; err != nil {
+		return err
+	}
 	return nil
 }

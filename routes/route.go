@@ -167,6 +167,7 @@ func SetupRoutes(r *gin.Engine) {
 		auth.POST(route.CreateSalary, middleware.PermissionMiddleware(permission.AddSalary), employeecontroller.CreateSalary)
 		auth.PUT(route.ChangeShiftPattern, middleware.PermissionMiddleware(permission.ChangeDayOff), employeecontroller.ChangeShiftPattern)
 		auth.PUT(route.ChangeShift, middleware.PermissionMiddleware(permission.ChangeShiftPattern), employeecontroller.ChangeShift)
+		auth.PUT(route.ChangeSingleShift, middleware.PermissionMiddleware(permission.ChangeShiftPattern), employeecontroller.ChangeSingleShift)
 
 		// StatusAttendace
 		auth.GET(route.ViewStatusAttendance, middleware.PermissionMiddleware(permission.ViewStatusAttendance), statusattendance.GetStatusAttendanceLogService)
