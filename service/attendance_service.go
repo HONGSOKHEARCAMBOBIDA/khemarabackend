@@ -217,7 +217,7 @@ func (s *attendanceservice) CheckIn(id int, input request.LocationRequest) error
 	// 		"%s\n"+
 	// 		"មូលហេតុ: %s\n",
 
-	// 	employee.NameKh,
+	// 	employee.NameKh
 	// 	employee.NameEn,
 	// 	employee.Code,
 	// 	branch.Name,

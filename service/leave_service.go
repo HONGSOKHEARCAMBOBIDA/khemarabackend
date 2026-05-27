@@ -112,8 +112,8 @@ func (s *leaveservice) CreateLeave(id int, input request.LeaveCreate) error {
 	}
 
 	message := fmt.Sprintf(
-		"សូមជម្រាបសួរលោកគ្រូ អ្នកគ្រូ!\n"+
-			"ខ្ញុំបាទ/នាងខ្ញុំ ឈ្មោះៈ %s\n"+
+		"សូមជម្រាបសួរលោកគ្រូ!\n"+
+			"មានបុគ្គលិកឈ្មោះៈ %s\n"+
 			"សុំអនុញ្ញាតច្បាប់ឈប់សម្រាក %s\n"+
 			"ចាប់ពីថ្ងៃទី %s រហូតដល់ថ្ងៃទី %s នឹងចូលបម្រើការងារវិញនៅថ្ងៃទី %s\n"+
 			"*មូលហេតុៈ %s\n"+
@@ -425,5 +425,63 @@ func (s *leaveservice) ApproveLeave(
 		return fmt.Errorf("អ្នកមិនអាចអនុម័តបានទេ")
 	}
 
+	var setting model.Setting
+
+	if err := tx.Where("`key` = ?", "ATTENDANCEGROUPCHATID").First(&setting).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	var leaveDurations []model.LeaveDuration
+
+	if err := tx.Where("leave_id =?", id).Find(&leaveDurations).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	var durationText string
+
+	for i := range leaveDurations {
+		var durationunit model.LeaveDurationUnit
+		if err := tx.First(&durationunit, leaveDurations[i].DurationUnitID).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
+		durationText += fmt.Sprintf(
+			" %.0f %s",
+			leaveDurations[i].DurationVlaue,
+			durationunit.NameKh,
+		)
+	}
+
+	var leave model.Leave
+	if err := tx.First(&leave, id).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	var employee model.Employee
+
+	if err := tx.First(&employee, leave.EmployeeID).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	message := fmt.Sprintf(
+		"សូមជម្រាបសួរលោកគ្រូ-អ្នកគ្រូ!\n"+
+			"មានបុគ្គលិកឈ្មោះៈ %s\n"+
+			"សុំអនុញ្ញាតច្បាប់ឈប់សម្រាក %s\n"+
+			"ចាប់ពីថ្ងៃទី %s រហូតដល់ថ្ងៃទី %s នឹងចូលបម្រើការងារវិញនៅថ្ងៃទី %s\n"+
+			"*មូលហេតុៈ %s\n"+
+			"សូមអរគុណ",
+		employee.NameKh,
+		durationText,
+		helper.FormatDate(leave.StartDate),
+		helper.FormatDate(leave.EndDate),
+		helper.FormatDate(leave.BackDate),
+		leave.Description,
+	)
+
+	go helper.SendTelegramMessage(message, setting.Value)
 	return tx.Commit().Error
 }
