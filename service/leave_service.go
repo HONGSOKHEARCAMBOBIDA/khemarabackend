@@ -246,7 +246,8 @@ func (s *leaveservice) GetLeave(id int, filters map[string]string, pagination re
 			l.approve_by_id         AS approve_by_id,
 			ep.name_kh              AS approve_by_name,
 			b.id                    AS branch_id,
-			b.name                  AS branch_name
+			b.name                  AS branch_name,
+			r.level AS role_level
 		`).
 		Joins("LEFT JOIN employees e ON e.id = l.employee_id").
 		Joins("LEFT JOIN positions p ON p.id = e.position_id").
@@ -257,6 +258,7 @@ func (s *leaveservice) GetLeave(id int, filters map[string]string, pagination re
 		Joins("LEFT JOIN branches b ON b.id = l.branch_id").
 		Joins("LEFT JOIN employees ep ON ep.id = l.approve_by_id").
 		Joins("LEFT JOIN users u ON u.employee_id = e.id").
+		Joins("LEFT JOIN roles r ON r.id = u.role_id").
 		Order("l.id DESC")
 
 	if role.Level < 4 {

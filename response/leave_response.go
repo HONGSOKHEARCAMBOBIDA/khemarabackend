@@ -2,6 +2,7 @@ package response
 
 type LeaveResponse struct {
 	ID              int    `json:"id"`
+	RoleLevel       int    `json:"role_level" gorm:"column:role_level"`
 	EmployeeID      int    `json:"employee_id"`
 	EmployeeCode    string `json:"employee_code"`
 	EmployeePhone   string `json:"employee_phone"`
