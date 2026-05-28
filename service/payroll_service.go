@@ -488,7 +488,7 @@ func (s *payrollservice) GetPayroll(userID int, filters map[string]string, pagin
 		p.bonus_amount AS bonus_amount,
 		p.total_deduction AS total_deduction,
 		p.net_salary AS net_salary,
-		c.name AS currency_name,
+		c.symbol AS currency_name,
 		c.code AS currency_code,
 		prs.name AS status_name,
 		p.note AS note
