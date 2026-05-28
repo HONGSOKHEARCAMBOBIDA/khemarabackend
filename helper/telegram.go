@@ -20,7 +20,7 @@ func parseInt64(s string) int64 {
 }
 
 func SendTelegramMessage(message string, chatID string) error {
-	botToken := "8619235719:AAHGC0_NVzIm9Gchc0tzD7nbGZ9Grv5xyG4"
+	botToken := "8905296925:AAFtBUxvO8-4Y4OLDEXr74ffe252RPwnEaI"
 	//	chatID := "-1003747714579"
 
 	url := "https://api.telegram.org/bot" + botToken + "/sendMessage"
