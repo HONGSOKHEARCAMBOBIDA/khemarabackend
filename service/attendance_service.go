@@ -89,7 +89,7 @@ func (s *attendanceservice) CheckIn(id int, input request.LocationRequest) error
 	}
 
 	distance := utils.CalculateDistance(branchLat, branchLng, userLat, userLng)
-	inzone := distance <= float64(input.BranchRadius)
+	inzone := distance <= float64(branch.Radius)
 
 	var attendancelog model.AttendanceLog
 	err = tx.Where("employee_id = ? AND check_date = ?", user.EmployeeID, currentDate).
