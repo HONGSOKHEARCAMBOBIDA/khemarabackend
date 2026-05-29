@@ -8,6 +8,7 @@ type User struct {
 	Contact        string `json:"contact"`
 	BranchID       int    `json:"branch_id"`
 	RoleID         int    `json:"role_id"`
+	Role           Role
 	EmployeeID     int    `json:"employee_id"`
 	Isactive       bool   `json:"is_active" gorm:"column:is_active"`
 	ManageBranch   int    `json:"manage_branch"`

@@ -86,7 +86,7 @@ func (cr *AttendanceController) GetAttendance(c *gin.Context) {
 		"check_date_from":    c.Query("check_date_from"),
 		"check_date_to":      c.Query("check_date_to"),
 	}
-	attendance, metadata, err := cr.service.GetAttendance(userID, filter, request.Pagination{
+	attendance, metadata, err := cr.service.GetAttendanceV2(userID, filter, request.Pagination{
 		Page:     page,
 		PageSize: pageSize,
 	})

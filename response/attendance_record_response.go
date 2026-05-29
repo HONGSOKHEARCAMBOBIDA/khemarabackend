@@ -2,6 +2,7 @@ package response
 
 type AttendanceRecordResponse struct {
 	ID               int     `json:"id"`
+	AttendanceLogID  int     `json:"attendance_log_id"`
 	ShiftSessionID   int     `json:"shift_session_id"`
 	StartTime        string  `json:"start_time"`
 	EndTime          string  `json:"end_time"`
