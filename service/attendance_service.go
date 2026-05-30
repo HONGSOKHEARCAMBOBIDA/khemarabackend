@@ -418,11 +418,11 @@ func applyAccessFilter(query *gorm.DB, db *gorm.DB, role model.Role, user model.
 		var branchIDs []int
 		db.Model(&model.UserBranch{}).Where("user_id = ?", userID).Pluck("branch_id", &branchIDs)
 		if len(branchIDs) == 0 {
-			return query.Where("1 = 0") // return empty
+			return query.Where("1 = 0")
 		}
 		return query.Where("alog.branch_id IN ?", branchIDs)
 	}
-	return query // case 3: no filter
+	return query
 }
 
 func applyCommonFilters(query *gorm.DB, filter map[string]string) *gorm.DB {
