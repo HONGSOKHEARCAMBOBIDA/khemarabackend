@@ -5,11 +5,13 @@ import (
 	"mysql/constant/route"
 	"mysql/controller"
 	"mysql/middleware"
+	"mysql/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
 func SetupRoutes(r *gin.Engine) {
+	r.Use(utils.SecurityHeaders())
 	authcontroller := controller.NewAuthController()
 	rolecontroller := controller.NewRoleController()
 	rolehaspermissioncontroller := controller.NewRoleHasPermissionController()
@@ -51,6 +53,7 @@ func SetupRoutes(r *gin.Engine) {
 	r.POST("/login", authcontroller.Login)
 	auth := r.Group("/")
 	auth.Use(middleware.AuthMiddleware())
+
 	{ //Role
 		auth.GET(route.ViewRole, middleware.PermissionMiddleware(permission.ViewRole), rolecontroller.GetRole)
 		auth.POST(route.AddRole, middleware.PermissionMiddleware(permission.AddRole), rolecontroller.CreateRole)
