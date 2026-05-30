@@ -20,8 +20,12 @@ type AttendanceResponse struct {
 
 type AttendanceLogResponseV2 struct {
 	ID                         int                          `json:"id"`
+	EmployeeCode               string                       `json:"employee_code"`
 	EmployeeName               string                       `json:"employee_name"`
-	CheckDate                  string                       `json:"check_date"`
+	EmployeeNameEn             string                       `json:"employee_name_en"`
+	PositionName               string                       `json:"position_name"`
+	DepartmentName             string                       `json:"department_name"`
+	CheckDate                  string                       `json:"check_date" gorm:"column:check_date"`
 	BranchName                 string                       `json:"branch_name"`
 	StatusName                 string                       `json:"status_name"`
 	AttendanceRecordResponseV2 []AttendanceRecordResponseV2 `json:"attendance_record" gorm:"-"`

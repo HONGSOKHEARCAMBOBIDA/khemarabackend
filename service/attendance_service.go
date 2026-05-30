@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"mysql/config"
+	"mysql/helper"
 	"mysql/model"
 	"mysql/request"
 	"mysql/response"
@@ -426,9 +427,12 @@ func applyAccessFilter(query *gorm.DB, db *gorm.DB, role model.Role, user model.
 
 func applyCommonFilters(query *gorm.DB, filter map[string]string) *gorm.DB {
 	boolFilterMap := map[string]string{
-		"check_in_early": "check_in_early", "check_in_on_time": "check_in_on_time",
-		"is_late": "is_late", "is_left_early": "is_left_early",
-		"check_out_on_time": "check_out_on_time", "check_out_overtime": "check_out_overtime",
+		"check_in_early":     "check_in_early",
+		"check_in_on_time":   "check_in_on_time",
+		"is_late":            "is_late",
+		"is_left_early":      "is_left_early",
+		"check_out_on_time":  "check_out_on_time",
+		"check_out_overtime": "check_out_overtime",
 	}
 	for key, value := range filter {
 		if value == "" {
@@ -453,11 +457,11 @@ func applyCommonFilters(query *gorm.DB, filter map[string]string) *gorm.DB {
 			"is_left_early", "check_out_on_time", "check_out_overtime":
 			col := boolFilterMap[key]
 			query = query.Where(fmt.Sprintf(`
-                EXISTS (
-                    SELECT 1 FROM attendance_records ar
-                    JOIN attendance_logs al2 ON al2.id = ar.attendance_log_id
-                    WHERE al2.employee_id = e.id AND ar.%s = ?
-                )`, col), value)
+				EXISTS (
+			    SELECT 1 FROM attendance_records ar
+			    WHERE ar.attendance_log_id = alog.id
+			    AND ar.%s = ?
+				)`, col), value)
 		}
 	}
 	return query
@@ -481,25 +485,34 @@ func (s *attendanceservice) GetAttendanceV2(userID int, filter map[string]string
 	attendancelogQuery := s.db.Table("attendance_logs alog").
 		Select(`
 		alog.id AS id,
+		e.code AS employee_code,
 		e.name_kh AS employee_name,
+		e.name_en AS employee_name_en,
+		p.display_name AS position_name,
+		d.display_name AS department_name,
 		alog.check_date AS check_date,
 		b.name AS branch_name,
 		s.name AS status_name
 	`).
 		Joins("LEFT JOIN employees e ON e.id = alog.employee_id").
+		Joins("LEFT JOIN positions p ON p.id = e.position_id").
+		Joins("LEFT JOIN departments d ON d.id = p.department_id").
 		Joins("LEFT JOIN branches b ON b.id = alog.branch_id").
 		Joins("LEFT JOIN status_attendance_logs s ON s.id = alog.status_attendance_log_id")
 
 	attendancelogQuery = applyAccessFilter(attendancelogQuery, s.db, user.Role, user, userID)
 	attendancelogQuery = applyCommonFilters(attendancelogQuery, filter)
 	var totalCount int64
-	countSQL := s.db.Raw("SELECT COUNT(*) FROM (?) AS sub", attendancelogQuery)
-	if err := countSQL.Scan(&totalCount).Error; err != nil {
+	countQuery := attendancelogQuery.Session(&gorm.Session{})
+	if err := countQuery.Count(&totalCount).Error; err != nil {
 		return nil, nil, err
 	}
 	var attendance []response.AttendanceLogResponseV2
 	if err := attendancelogQuery.Offset(offset).Limit(pagination.PageSize).Scan(&attendance).Error; err != nil {
 		return nil, nil, err
+	}
+	for i := range attendance {
+		attendance[i].CheckDate = helper.FormatDate(attendance[i].CheckDate)
 	}
 	if len(attendance) == 0 {
 		return attendance, buildPaginationMeta(pagination, totalCount), nil
@@ -530,6 +543,19 @@ func (s *attendanceservice) GetAttendanceV2(userID int, filter map[string]string
 	`).
 		Joins("LEFT JOIN shift_sessions s ON s.id = atr.shift_session_id").
 		Where("atr.attendance_log_id IN ?", attendancelogIDs)
+	boolFilterMap := map[string]string{
+		"check_in_early":     "check_in_early",
+		"check_in_on_time":   "check_in_on_time",
+		"is_late":            "is_late",
+		"is_left_early":      "is_left_early",
+		"check_out_on_time":  "check_out_on_time",
+		"check_out_overtime": "check_out_overtime",
+	}
+	for key, value := range filter {
+		if col, ok := boolFilterMap[key]; ok && value != "" {
+			recordQuery = recordQuery.Where(fmt.Sprintf("atr.%s = ?", col), value)
+		}
+	}
 	var attendancerecords []response.AttendanceRecordResponseV2
 	if err := recordQuery.Scan(&attendancerecords).Error; err != nil {
 		return nil, nil, err
