@@ -16,7 +16,7 @@ func SecurityHeaders() gin.HandlerFunc {
 			"Content-Security-Policy",
 			"default-src 'self'; font-src 'self' https://fonts.googleapis.com",
 		)
-		// Load បានតែអ្វីដែលមកពី Website ខ្ញុំ ហាមទាំងអស់ដែលមកពីក្រៅ
+		// Load បានតែអ្វីដែលមកពី Website ហាមទាំងអស់ដែលមកពីក្រៅ
 		c.Header(
 			"Referrer-Policy",
 			"strict-origin",
@@ -32,12 +32,11 @@ func SecurityHeaders() gin.HandlerFunc {
 			"same-origin",
 		)
 
-		if gin.Mode() == gin.ReleaseMode {
-			c.Header(
-				"Strict-Transport-Security",
-				"max-age=31536000; includeSubDomains",
-			)
-		}
+		c.Header(
+			"Strict-Transport-Security",
+			"max-age=31536000; includeSubDomains",
+		)
+
 		//Browser អើយ! ១ឆ្នាំខាងមុខ បើអ្នកចូល Website នេះ ត្រូវប្រើ HTTPS តែប៉ុណ្ណោះ! HTTP ហាមដាច់ខាត!
 
 		c.Next()

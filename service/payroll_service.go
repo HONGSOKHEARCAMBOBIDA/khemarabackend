@@ -378,49 +378,32 @@ func (s *payrollservice) DeletePayroll(id int) error {
 	return tx.Commit().Error
 }
 
-func (s *payrollservice) GetDraftPayroll(branchID int, currencyID int, payrollType int) ([]response.PayrollDrafResponse, error) {
+func (s *payrollservice) GetDraftPayroll(branchID, currencyID, payrollType int) ([]response.PayrollDrafResponse, error) {
 	var payrollDraft []response.PayrollDrafResponse
 
 	pensionfundExpr := "0 AS pensionfund"
 	if payrollType == 2 {
-		pensionfundExpr = `
-			s.base_salary * stpensionfund.value
-				/ COALESCE(er_to_usd.rate, 1)
-				* COALESCE(er_from_usd.rate, 1) / 100   AS pensionfund`
+		pensionfundExpr = `s.base_salary / COALESCE(er_to_usd.rate, 1) * COALESCE(er_from_usd.rate, 1) * COALESCE(er_pensionfund.rate,1) * stpensionfund.value / 100 / 4000 AS pensionfund`
 	}
 
 	query := s.db.Table("employees e").
 		Select(`
-			e.id AS employee_id,
-			e.name_kh AS employee_name,
-			e.is_promote AS is_promote,
-			b.id branch_id,
-			b.name AS branch_name,
-			s.id AS salary_id,
-			st.value AS total_work_day,
-			s.base_salary
-				/ COALESCE(er_to_usd.rate, 1)
-				* COALESCE(er_from_usd.rate, 1) AS base_salary,
-
-			s.daily_rate
-				/ COALESCE(er_to_usd.rate, 1)
-				* COALESCE(er_from_usd.rate, 1) AS daily_rate,
+			e.id AS employee_id, e.name_kh AS employee_name, e.is_promote AS is_promote,
+			b.id branch_id, b.name AS branch_name,
+			s.id AS salary_id, st.value AS total_work_day,
+			s.base_salary  / COALESCE(er_to_usd.rate, 1) * COALESCE(er_from_usd.rate, 1) AS base_salary,
+			s.daily_rate   / COALESCE(er_to_usd.rate, 1) * COALESCE(er_from_usd.rate, 1) AS daily_rate,
 			`+pensionfundExpr+`,
-			l.id AS loan_id,
-			c.symbol AS currency_symbol,
-
+			l.id AS loan_id, c.symbol AS currency_symbol,
 			(
 				SELECT COALESCE(SUM(
-					CASE
-						WHEN COALESCE(ps.income_amount, 0) != COALESCE(ps.income_paid, 0)
-						AND DATE(ps.payment_date) <= CURRENT_DATE
-							THEN (COALESCE(ps.income_amount, 0) - COALESCE(ps.income_paid, 0)) / COALESCE(loanrate.rate, 1) * COALESCE(er_from_usd.rate, 1)
-
-						ELSE 0
-					END
+					CASE WHEN COALESCE(ps.income_amount,0) != COALESCE(ps.income_paid,0)
+					          AND DATE(ps.payment_date) <= CURRENT_DATE
+					     THEN (COALESCE(ps.income_amount,0) - COALESCE(ps.income_paid,0))
+					          / COALESCE(loanrate.rate,1) * COALESCE(er_from_usd.rate,1)
+					     ELSE 0 END
 				), 0)
-				FROM schedules ps
-				WHERE ps.loan_id = l.id
+				FROM schedules ps WHERE ps.loan_id = l.id
 			) AS loan_deduction
 		`).
 		Joins("LEFT JOIN users u ON u.employee_id = e.id").
@@ -434,8 +417,11 @@ func (s *payrollservice) GetDraftPayroll(branchID int, currencyID int, payrollTy
 		Joins("LEFT JOIN exchange_rates er_to_usd ON er_to_usd.pair_id = cp_to_usd.id").
 		Joins("LEFT JOIN currency_pairs cp_from_usd ON cp_from_usd.base_currency_id = 2 AND cp_from_usd.target_currency_id = ?", currencyID).
 		Joins("LEFT JOIN exchange_rates er_from_usd ON er_from_usd.pair_id = cp_from_usd.id").
-		Joins("LEFT JOIN currencies c ON c.id =?", currencyID).
+		Joins("LEFT JOIN currency_pairs cp_pensionfund ON cp_pensionfund.base_currency_id = 2 AND cp_pensionfund.target_currency_id = 1").
+		Joins("LEFT JOIN exchange_rates er_pensionfund ON er_pensionfund.pair_id = cp_pensionfund.id").
+		Joins("LEFT JOIN currencies c ON c.id = ?", currencyID).
 		Where("u.branch_id = ?", branchID)
+
 	if payrollType == 2 {
 		query = query.Joins("LEFT JOIN settings stpensionfund ON stpensionfund.key = 'PENSIONFUND'")
 	}
@@ -445,8 +431,10 @@ func (s *payrollservice) GetDraftPayroll(branchID int, currencyID int, payrollTy
 	}
 
 	for i := range payrollDraft {
-		if payrollDraft[i].Ispromote == false {
+		if !payrollDraft[i].Ispromote {
 			payrollDraft[i].Pensionfund = 0
+		} else {
+			payrollDraft[i].Pensionfund = float32(utils.RoundUp(float64(payrollDraft[i].Pensionfund), 2))
 		}
 	}
 
