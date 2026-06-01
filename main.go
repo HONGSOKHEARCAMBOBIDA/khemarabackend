@@ -3,6 +3,7 @@ package main
 import (
 	"mysql/config"
 	"mysql/routes"
+	"mysql/utils"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -19,14 +20,14 @@ func main() {
 	// r.MaxMultipartMemory = 8 << 20
 	// Apply CORS middleware
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"}, // your frontend origin
+		AllowOrigins:     []string{"https://7ml45f42-5173.asse.devtunnels.ms"}, // your frontend origin
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
-
+	r.Use(utils.SecurityHeaders())
 	// Set up routes
 	routes.SetupRoutes(r)
 

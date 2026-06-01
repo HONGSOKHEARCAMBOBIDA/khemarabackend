@@ -383,14 +383,18 @@ func (s *payrollservice) GetDraftPayroll(branchID, currencyID, payrollType int) 
 
 	pensionfundExpr := "0 AS pensionfund"
 	if payrollType == 2 {
-		pensionfundExpr = `s.base_salary / COALESCE(er_to_usd.rate, 1) * COALESCE(er_from_usd.rate, 1) * COALESCE(er_pensionfund.rate,1) * stpensionfund.value / 100 / 4000 AS pensionfund`
+		pensionfundExpr = `s.base_salary / COALESCE(er_to_usd.rate, 1) * COALESCE(er_from_usd.rate, 1) * stbbs.value * stpensionfund.value / 100 / 4000 AS pensionfund`
 	}
 
 	query := s.db.Table("employees e").
 		Select(`
-			e.id AS employee_id, e.name_kh AS employee_name, e.is_promote AS is_promote,
-			b.id branch_id, b.name AS branch_name,
-			s.id AS salary_id, st.value AS total_work_day,
+			e.id AS employee_id, 
+			e.name_kh AS employee_name, 
+			e.is_promote AS is_promote,
+			b.id AS branch_id, 
+			b.name AS branch_name,
+			s.id AS salary_id, 
+			st.value AS total_work_day,
 			s.base_salary  / COALESCE(er_to_usd.rate, 1) * COALESCE(er_from_usd.rate, 1) AS base_salary,
 			s.daily_rate   / COALESCE(er_to_usd.rate, 1) * COALESCE(er_from_usd.rate, 1) AS daily_rate,
 			`+pensionfundExpr+`,
@@ -411,14 +415,13 @@ func (s *payrollservice) GetDraftPayroll(branchID, currencyID, payrollType int) 
 		Joins("LEFT JOIN salaries s ON s.employee_id = e.id AND s.is_active = 1").
 		Joins("LEFT JOIN loans l ON l.employee_id = e.id AND l.status = 1").
 		Joins("LEFT JOIN settings st ON st.key = 'WORKDAY'").
+		Joins("LEFT JOIN settings stbbs ON stbbs.key = 'BBS'").
 		Joins("LEFT JOIN currency_pairs loanpair ON loanpair.base_currency_id = 2 AND loanpair.target_currency_id = l.currency_id").
 		Joins("LEFT JOIN exchange_rates loanrate ON loanrate.pair_id = loanpair.id").
 		Joins("LEFT JOIN currency_pairs cp_to_usd ON cp_to_usd.base_currency_id = 2 AND cp_to_usd.target_currency_id = s.currency_id").
 		Joins("LEFT JOIN exchange_rates er_to_usd ON er_to_usd.pair_id = cp_to_usd.id").
 		Joins("LEFT JOIN currency_pairs cp_from_usd ON cp_from_usd.base_currency_id = 2 AND cp_from_usd.target_currency_id = ?", currencyID).
 		Joins("LEFT JOIN exchange_rates er_from_usd ON er_from_usd.pair_id = cp_from_usd.id").
-		Joins("LEFT JOIN currency_pairs cp_pensionfund ON cp_pensionfund.base_currency_id = 2 AND cp_pensionfund.target_currency_id = 1").
-		Joins("LEFT JOIN exchange_rates er_pensionfund ON er_pensionfund.pair_id = cp_pensionfund.id").
 		Joins("LEFT JOIN currencies c ON c.id = ?", currencyID).
 		Where("u.branch_id = ?", branchID)
 
