@@ -1,6 +1,8 @@
 package service
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
@@ -21,6 +23,11 @@ import (
 
 type AuthService interface {
 	Login(input request.AuthRequest, c *gin.Context) (*response.AuthResponse, error)
+	RefreshToken(input request.RefreshTokenRequest, c *gin.Context) (*response.AuthResponse, error)
+	//  Logout(refreshToken string) error
+	GetSessions(userID uint) ([]model.Session, error)
+	RevokeSession(sessionID uint, userID uint) error
+	RevokeAllSessions(userID uint) error
 	Register(id int, input request.RegisterRequest, c *gin.Context) error
 	GetUserByBranch(id int) ([]response.UserResponse, error)
 	UpdateUser(id int, input request.UserRequestUpdate) error
@@ -38,6 +45,195 @@ func NewAuthService() AuthService {
 	}
 }
 
+func (s *authservice) Login(input request.AuthRequest, c *gin.Context) (*response.AuthResponse, error) {
+	deviceName := c.Request.UserAgent()
+	ipAddress := c.ClientIP()
+	key := "login_attempt:" + input.UserName
+	attempts, _ := utils.Redis.Get(utils.Ctx, key).Int()
+	if attempts >= 5 {
+		return nil, errors.New("អ្នកព្យាយាមចូលច្រើនពេក សូមព្យាយាមម្តងទៀតក្រោយ 10 នាទី")
+	}
+	var user model.User
+	if err := s.db.
+		Where("(contact = ? OR email = ? OR username = ?) AND is_active = ?",
+			input.UserName, input.UserName, input.UserName, 1).
+		First(&user).Error; err != nil {
+		return nil, errors.New("ព័ត៌មានមិនត្រឹមត្រូវ ឬ អ្នកប្រើប្រាស់ត្រូវបានបិទគណនី")
+	}
+
+	if err := bcrypt.CompareHashAndPassword(
+		[]byte(user.Password),
+		[]byte(input.Password),
+	); err != nil {
+		utils.Redis.Incr(utils.Ctx, key)
+		utils.Redis.Expire(utils.Ctx, key, 10*time.Minute)
+		return nil, errors.New("ព័ត៌មានមិនត្រឹមត្រូវ")
+	}
+	utils.Redis.Del(utils.Ctx, key)
+
+	var userparts []response.UserPartResponse
+	if err := s.db.Table("user_parts up").
+		Select("up.id AS id, p.id AS part_id, p.name AS part_name, p.display_name AS part_display_name").
+		Joins("JOIN parts p ON p.id = up.part_id").
+		Where("up.user_id = ?", user.ID).
+		Scan(&userparts).Error; err != nil {
+		return nil, err
+	}
+
+	var permissions []model.Permission
+	if err := s.db.Table("permissions p").
+		Select("p.id AS id, p.name AS name").
+		Joins("JOIN role_has_permissions rhp ON rhp.permission_id = p.id").
+		Where("rhp.role_id = ? AND p.name IN ?", user.RoleID, []string{
+			"update.user", "add.user", "edit.salary", "add.salary",
+			"add.loan", "add.payroll", "change.shift.pattern",
+			"change.day.off", "approve.leave",
+		}).
+		Scan(&permissions).Error; err != nil {
+		return nil, err
+	}
+
+	accessExpiry := time.Now().Add(1 * time.Minute)
+	claims := jwt.MapClaims{
+		"user_id": user.ID,
+		"contact": user.Contact,
+		"role_id": user.RoleID,
+		"exp":     accessExpiry.Unix(),
+	}
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	accessTokenStr, err := accessToken.SignedString(utils.Jwtkey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign access token: %w", err)
+	}
+
+	refreshTokenBytes := make([]byte, 32)
+	if _, err := rand.Read(refreshTokenBytes); err != nil {
+		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
+	}
+	refreshTokenStr := hex.EncodeToString(refreshTokenBytes)
+	tokenPrefix := refreshTokenStr[:16]
+	hashedRefresh, err := bcrypt.GenerateFromPassword([]byte(refreshTokenStr), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, fmt.Errorf("failed to hash refresh token: %w", err)
+	}
+	var sessionCount int64
+	s.db.Model(&model.Session{}).
+		Where("user_id = ? AND expires_at > ?", user.ID, time.Now()).
+		Count(&sessionCount)
+
+	if sessionCount >= 5 {
+		s.db.Where("user_id = ? AND expires_at > ?", user.ID, time.Now()).
+			Order("created_at ASC").
+			Limit(1).
+			Delete(&model.Session{})
+	}
+
+	session := model.Session{
+		UserID:       uint(user.ID),
+		RefreshToken: string(hashedRefresh),
+		TokenPrefix:  tokenPrefix,
+		DeviceName:   deviceName,
+		IPAddress:    ipAddress,
+		LastActive:   time.Now(),
+		ExpiresAt:    time.Now().Add(30 * 24 * time.Hour),
+	}
+	if err := s.db.Create(&session).Error; err != nil {
+		return nil, fmt.Errorf("failed to create session: %w", err)
+	}
+
+	// 11. Build and return response
+	resp := &response.AuthResponse{
+		ID:           user.ID,
+		Name:         user.UserName,
+		Contact:      user.Contact,
+		DeviceName:   deviceName,
+		IpAddress:    ipAddress,
+		RoleID:       uint(user.RoleID),
+		Parts:        userparts,
+		ManageBranch: user.ManageBranch,
+		Permissions:  permissions,
+		AccessToken:  accessTokenStr,
+		RefreshToken: refreshTokenStr,
+	}
+
+	return resp, nil
+}
+
+func (s *authservice) RefreshToken(input request.RefreshTokenRequest, c *gin.Context) (*response.AuthResponse, error) {
+	if len(input.RefreshToken) < 16 {
+		return nil, errors.New("Invalid refresh token")
+	}
+	prefix := input.RefreshToken[:16]
+	var session model.Session
+	err := s.db.Where("token_prefix = ? AND expires_at > ?",
+		prefix, time.Now()).
+		First(&session).Error
+
+	if err != nil {
+		return nil, errors.New("Invalid or expired refresh token")
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(session.RefreshToken), []byte(input.RefreshToken)); err != nil {
+		return nil, errors.New("Invalid or expired refresh token")
+	}
+
+	newRefreshBytes := make([]byte, 32)
+	rand.Read(newRefreshBytes)
+	newRefreshStr := hex.EncodeToString(newRefreshBytes)
+	newHash, _ := bcrypt.GenerateFromPassword([]byte(newRefreshStr), bcrypt.DefaultCost)
+	newPrefix := newRefreshStr[:16]
+
+	s.db.Model(&session).Updates(model.Session{
+		RefreshToken: string(newHash),
+		TokenPrefix:  newPrefix,
+		LastActive:   time.Now(),
+		ExpiresAt:    time.Now().Add(30 * 24 * time.Hour),
+		IPAddress:    c.ClientIP(),
+	})
+
+	// 4. Issue new access token
+	var user model.User
+	s.db.First(&user, session.UserID)
+
+	accessExpiry := time.Now().Add(1 * time.Minute)
+	claims := jwt.MapClaims{
+		"user_id": user.ID,
+		"role_id": user.RoleID,
+		"exp":     accessExpiry.Unix(),
+	}
+	accessToken, _ := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(utils.Jwtkey)
+
+	return &response.AuthResponse{
+		AccessToken:  accessToken,
+		RefreshToken: newRefreshStr,
+		ExpiresIn:    int64(accessExpiry.Unix()),
+	}, nil
+}
+
+// func (s *authservice) Logout(refreshToken string) error {
+//     // same bcrypt search loop as RefreshToken()
+//     // then: s.db.Model(matched).Update("is_revoked", true)
+// }
+
+func (s *authservice) GetSessions(userID uint) ([]model.Session, error) {
+	var sessions []model.Session
+	s.db.Where("user_id = ? AND is_revoked = ? AND expires_at > ?",
+		userID, false, time.Now()).
+		Order("last_active DESC").Find(&sessions)
+	return sessions, nil
+}
+
+func (s *authservice) RevokeSession(sessionID uint, userID uint) error {
+	return s.db.Model(&model.Session{}).
+		Where("id = ? AND user_id = ?", sessionID, userID).
+		Update("is_revoked", true).Error
+}
+
+func (s *authservice) RevokeAllSessions(userID uint) error {
+	return s.db.Model(&model.Session{}).
+		Where("user_id = ?", userID).
+		Update("is_revoked", true).Error
+}
+
 func (s *authservice) GetUserByBranch(id int) ([]response.UserResponse, error) {
 	var user []response.UserResponse
 	db := s.db.Table("users u").
@@ -50,84 +246,6 @@ func (s *authservice) GetUserByBranch(id int) ([]response.UserResponse, error) {
 		return nil, err
 	}
 	return user, nil
-}
-
-func (s *authservice) Login(input request.AuthRequest, c *gin.Context) (*response.AuthResponse, error) {
-	deviceName := c.Request.UserAgent()
-	ipAddress := c.ClientIP()
-	key := "login_attempt:" + input.UserName
-	attempts, _ := utils.Redis.Get(utils.Ctx, key).Int()
-	if attempts >= 5 {
-		return nil, errors.New("អ្នកព្យាយាមចូលច្រើនពេក សូមព្យាយាមម្តងទៀតក្រោយ 10 នាទី")
-	}
-	// 1. Find user
-	var user model.User
-	if err := s.db.
-		Where("(contact = ? OR email = ? OR username = ?) AND is_active = ?",
-			input.UserName, input.UserName, input.UserName, 1).
-		First(&user).Error; err != nil {
-		return nil, errors.New("ព័ត៌មានមិនត្រឹមត្រូវ ឬ អ្នកប្រើប្រាស់ត្រូវបានបិទគណនី")
-	}
-
-	// 2. Check password
-	if err := bcrypt.CompareHashAndPassword(
-		[]byte(user.Password),
-		[]byte(input.Password),
-	); err != nil {
-
-		utils.Redis.Incr(utils.Ctx, key)
-		utils.Redis.Expire(utils.Ctx, key, 10*time.Minute)
-
-		return nil, errors.New("ព័ត៌មានមិនត្រឹមត្រូវ")
-	}
-	utils.Redis.Del(utils.Ctx, key)
-
-	// 4. Generate JWT
-	expirationTime := time.Now().Add(24 * time.Hour)
-	var userparts []response.UserPartResponse
-	if err := s.db.Table("user_parts up").
-		Select("up.id AS id,p.id AS part_id,p.name AS part_name,p.display_name AS part_display_name").
-		Joins("JOIN parts p ON p.id = up.part_id").
-		Where("up.user_id =?", user.ID).Scan(&userparts).Error; err != nil {
-		return nil, err
-	}
-
-	var permissions []model.Permission
-
-	if err := s.db.Table("permissions p").Select("p.id AS id,p.name AS name").
-		Joins("JOIN role_has_permissions rhp ON rhp.permission_id = p.id").Where("rhp.role_id =? AND p.name IN ?", user.RoleID, []string{"update.user", "add.user", "edit.salary", "add.salary", "add.loan", "add.payroll", "change.shift.pattern", "change.day.off", "approve.leave"}).Scan(&permissions).Error; err != nil {
-		return nil, err
-	}
-
-	claims := jwt.MapClaims{
-		"user_id": user.ID,
-		"contact": user.Contact,
-		"role_id": user.RoleID,
-		"exp":     expirationTime.Unix(),
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	tokenStr, err := token.SignedString(utils.Jwtkey)
-	if err != nil {
-		return nil, err
-	}
-
-	// 5. Build response
-	resp := &response.AuthResponse{
-		ID:           user.ID,
-		Name:         user.UserName,
-		Contact:      user.Contact,
-		DeviceName:   deviceName,
-		IpAddress:    ipAddress,
-		Token:        tokenStr,
-		RoleID:       uint(user.RoleID),
-		Parts:        userparts,
-		ManageBranch: user.ManageBranch,
-		Permissions:  permissions,
-	}
-
-	return resp, nil
 }
 
 func (s *authservice) Register(id int, input request.RegisterRequest, c *gin.Context) error {

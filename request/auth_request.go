@@ -5,6 +5,10 @@ type AuthRequest struct {
 	Password string `json:"password"`
 }
 
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}
+
 type RegisterRequest struct {
 	NameEn                  string   `form:"name_en" binding:"required"`
 	NameKh                  string   `form:"name_kh" binding:"required"`

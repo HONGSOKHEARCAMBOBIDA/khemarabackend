@@ -49,8 +49,13 @@ func SetupRoutes(r *gin.Engine) {
 	r.Static("/qrcodeimage", "./public/qrcodeimage")
 	r.Static("/educationimage", "./public/educationimage")
 	r.POST("/login", authcontroller.Login)
+	r.POST("/refresh", authcontroller.RefreshToken)
 	auth := r.Group("/")
 	auth.Use(middleware.AuthMiddleware())
+	auth.POST("/logout", middleware.AuthMiddleware(), authcontroller.Logout)
+	auth.GET("/sessions", middleware.AuthMiddleware(), authcontroller.GetSessions)
+	auth.DELETE("/sessions/:id", middleware.AuthMiddleware(), authcontroller.RevokeSession)
+	auth.DELETE("/sessions", middleware.AuthMiddleware(), authcontroller.RevokeAllSessions)
 
 	{ //Role
 		auth.GET(route.ViewRole, middleware.PermissionMiddleware(permission.ViewRole), rolecontroller.GetRole)

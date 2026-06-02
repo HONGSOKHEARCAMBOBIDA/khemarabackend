@@ -80,7 +80,7 @@ func PermissionMiddleware(requiredPermissions ...string) gin.HandlerFunc {
 			return
 		}
 		roleID := uint(roleIDFloat)
-		c.Set("userID", roleID)
+		//c.Set("userID", roleID)
 		// Query DB: Load role with permissions
 		var role model.Role
 		err = config.DB.Preload("Permissions").First(&role, roleID).Error

@@ -18,4 +18,7 @@ type AuthResponse struct {
 	BranchLongitude string             `json:"branch_longitude"`
 	BranchRadius    int                `json:"branch_radius"`
 	EmployeeID      int                `json:"employee_id"`
+	AccessToken     string             `json:"access_token"`
+	RefreshToken    string             `json:"refresh_token"`
+	ExpiresIn       int64              `json:"expires_in"`
 }

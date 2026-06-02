@@ -127,6 +127,17 @@ func (s *employeeservice) GetEmployee(userID int, filters map[string]string, pag
 	}
 
 	for i := range employees {
+		var sessions []model.Session
+		if err := s.db.Table("sessions s").
+			Select(`
+			s.device_name,
+			s.ip_address,
+			s.last_active,
+			s.expires_at
+		`).Where("s.user_id = ?", employees[i].UserID).Scan(&sessions).Error; err != nil {
+			return nil, nil, err
+		}
+		employees[i].Sessions = sessions
 		var userParts []response.UserPartResponse
 		if err := s.db.Table("user_parts up").
 			Select(`

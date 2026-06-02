@@ -1,5 +1,7 @@
 package response
 
+import "mysql/model"
+
 type EmployeeResponseDetail struct {
 	UserID                  int                              `json:"user_id"`
 	UserName                string                           `json:"username" gorm:"column:username"`
@@ -12,6 +14,7 @@ type EmployeeResponseDetail struct {
 	UserActive              bool                             `json:"user_active"`
 	ManageBranchID          int                              `json:"manage_branch_id"`
 	ManageBranchName        string                           `json:"manage_branch_name"`
+	Sessions                []model.Session                  `json:"sessions" gorm:"-"`
 	Parts                   []UserPartResponse               `json:"parts" gorm:"-"`
 	Branches                []UserBranchResponse             `json:"branches" gorm:"-"`
 	EmployeeRespons         []EmployeeRespons                `json:"employees" gorm:"-"`
