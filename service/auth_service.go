@@ -24,9 +24,7 @@ import (
 type AuthService interface {
 	Login(input request.AuthRequest, c *gin.Context) (*response.AuthResponse, error)
 	RefreshToken(input request.RefreshTokenRequest, c *gin.Context) (*response.AuthResponse, error)
-	//  Logout(refreshToken string) error
-	GetSessions(userID uint) ([]model.Session, error)
-	RevokeSession(sessionID uint, userID uint) error
+	RevokeSession(id int) error
 	RevokeAllSessions(userID uint) error
 	Register(id int, input request.RegisterRequest, c *gin.Context) error
 	GetUserByBranch(id int) ([]response.UserResponse, error)
@@ -93,7 +91,7 @@ func (s *authservice) Login(input request.AuthRequest, c *gin.Context) (*respons
 		return nil, err
 	}
 
-	accessExpiry := time.Now().Add(1 * time.Minute)
+	accessExpiry := time.Now().Add(15 * time.Minute)
 	claims := jwt.MapClaims{
 		"user_id": user.ID,
 		"contact": user.Contact,
@@ -194,7 +192,7 @@ func (s *authservice) RefreshToken(input request.RefreshTokenRequest, c *gin.Con
 	var user model.User
 	s.db.First(&user, session.UserID)
 
-	accessExpiry := time.Now().Add(1 * time.Minute)
+	accessExpiry := time.Now().Add(15 * time.Minute)
 	claims := jwt.MapClaims{
 		"user_id": user.ID,
 		"role_id": user.RoleID,
@@ -214,18 +212,11 @@ func (s *authservice) RefreshToken(input request.RefreshTokenRequest, c *gin.Con
 //     // then: s.db.Model(matched).Update("is_revoked", true)
 // }
 
-func (s *authservice) GetSessions(userID uint) ([]model.Session, error) {
-	var sessions []model.Session
-	s.db.Where("user_id = ? AND is_revoked = ? AND expires_at > ?",
-		userID, false, time.Now()).
-		Order("last_active DESC").Find(&sessions)
-	return sessions, nil
-}
-
-func (s *authservice) RevokeSession(sessionID uint, userID uint) error {
-	return s.db.Model(&model.Session{}).
-		Where("id = ? AND user_id = ?", sessionID, userID).
-		Update("is_revoked", true).Error
+func (s *authservice) RevokeSession(id int) error {
+	if err := s.db.Where("id = ?", id).Delete(&model.Session{}).Error; err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *authservice) RevokeAllSessions(userID uint) error {

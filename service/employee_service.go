@@ -130,6 +130,7 @@ func (s *employeeservice) GetEmployee(userID int, filters map[string]string, pag
 		var sessions []model.Session
 		if err := s.db.Table("sessions s").
 			Select(`
+			s.id,
 			s.device_name,
 			s.ip_address,
 			s.last_active,

@@ -166,4 +166,7 @@ const (
 	ApprovePayroll  = "approve.payroll/:id"
 	// Recieve
 	ViewRecieve = "view.recieve/:id"
+
+	// Session
+	RevokeSession = "revoke.session/:id"
 )

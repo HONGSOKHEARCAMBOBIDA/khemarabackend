@@ -50,67 +50,14 @@ func (cr *AuthController) RefreshToken(c *gin.Context) {
 	share.RespondDate(c, http.StatusOK, result)
 }
 
-func (cr *AuthController) Logout(c *gin.Context) {
-	var input request.RefreshTokenRequest
-	if err := c.ShouldBindJSON(&input); err != nil {
-		share.ResponseError(c, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	userID, ok := helper.GetUserID(c)
-	if !ok {
-		share.ResponseError(c, http.StatusUnauthorized, "Unauthorized")
-		return
-	}
-
-	// Revoke the specific session matching this refresh token
-	sessions, err := cr.service.GetSessions(uint(userID))
-	if err != nil {
-		share.ResponseError(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	// Find session by refresh token and revoke it
-	for _, session := range sessions {
-		if err := cr.service.RevokeSession(session.ID, uint(userID)); err == nil {
-			share.RespondDate(c, http.StatusOK, gin.H{"message": "Logged out successfully"})
-			return
-		}
-	}
-
-	share.RespondDate(c, http.StatusOK, gin.H{"message": "Logged out successfully"})
-}
-
-func (cr *AuthController) GetSessions(c *gin.Context) {
-	userID, ok := helper.GetUserID(c)
-	if !ok {
-		share.ResponseError(c, http.StatusUnauthorized, "Unauthorized")
-		return
-	}
-
-	sessions, err := cr.service.GetSessions(uint(userID))
-	if err != nil {
-		share.ResponseError(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	share.RespondDate(c, http.StatusOK, sessions)
-}
-
 func (cr *AuthController) RevokeSession(c *gin.Context) {
-	userID, ok := helper.GetUserID(c)
-	if !ok {
-		share.ResponseError(c, http.StatusUnauthorized, "Unauthorized")
-		return
-	}
-
 	sessionID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		share.ResponseError(c, http.StatusBadRequest, "Invalid session ID")
 		return
 	}
 
-	if err := cr.service.RevokeSession(uint(sessionID), uint(userID)); err != nil {
+	if err := cr.service.RevokeSession(sessionID); err != nil {
 		share.ResponseError(c, http.StatusInternalServerError, err.Error())
 		return
 	}

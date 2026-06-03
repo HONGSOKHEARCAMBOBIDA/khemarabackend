@@ -52,8 +52,6 @@ func SetupRoutes(r *gin.Engine) {
 	r.POST("/refresh", authcontroller.RefreshToken)
 	auth := r.Group("/")
 	auth.Use(middleware.AuthMiddleware())
-	auth.POST("/logout", middleware.AuthMiddleware(), authcontroller.Logout)
-	auth.GET("/sessions", middleware.AuthMiddleware(), authcontroller.GetSessions)
 	auth.DELETE("/sessions/:id", middleware.AuthMiddleware(), authcontroller.RevokeSession)
 	auth.DELETE("/sessions", middleware.AuthMiddleware(), authcontroller.RevokeAllSessions)
 
@@ -159,6 +157,8 @@ func SetupRoutes(r *gin.Engine) {
 		auth.PUT(route.ChangePassword, middleware.PermissionMiddleware(permission.ChangePassword), authcontroller.ChangePassword)
 		auth.GET(route.ViewUserByID, middleware.PermissionMiddleware(permission.ViewUser), authcontroller.GetUserByID)
 
+		// Session
+		auth.DELETE(route.RevokeSession, middleware.PermissionMiddleware(permission.RevokeSession), authcontroller.RevokeSession)
 		// Part
 		auth.GET(route.ViewPart, middleware.PermissionMiddleware(permission.ViewPart), partcontroller.GetPart)
 

@@ -153,4 +153,7 @@ const (
 	// Shift
 	ChangeShiftPattern = "change.shift.pattern"
 	ChangeDayOff       = "change.day.off"
+
+	// Session
+	RevokeSession = "revoke.session"
 )
