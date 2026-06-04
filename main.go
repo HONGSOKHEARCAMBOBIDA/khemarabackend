@@ -10,11 +10,12 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
 	config.ConnectDatabase()
-
+	utils.InitMetrics()
 	go func() {
 		for {
 			time.Sleep(24 * time.Hour)
@@ -25,6 +26,7 @@ func main() {
 	}()
 
 	r := gin.Default()
+	r.Use(utils.MetricsMiddleware())
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -34,6 +36,7 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 	r.Use(utils.SecurityHeaders())
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	routes.SetupRoutes(r)
 
 	if err := r.Run("0.0.0.0:8080"); err != nil {

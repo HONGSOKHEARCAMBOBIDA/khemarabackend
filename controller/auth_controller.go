@@ -65,14 +65,14 @@ func (cr *AuthController) RevokeSession(c *gin.Context) {
 	share.RespondDate(c, http.StatusOK, gin.H{"message": "Session revoked successfully"})
 }
 
-func (cr *AuthController) RevokeAllSessions(c *gin.Context) {
+func (cr *AuthController) Logout(c *gin.Context) {
 	userID, ok := helper.GetUserID(c)
 	if !ok {
 		share.ResponseError(c, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
 
-	if err := cr.service.RevokeAllSessions(uint(userID)); err != nil {
+	if err := cr.service.Logout(uint(userID)); err != nil {
 		share.ResponseError(c, http.StatusInternalServerError, err.Error())
 		return
 	}

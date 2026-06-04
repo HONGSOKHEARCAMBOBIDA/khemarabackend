@@ -25,7 +25,7 @@ type AuthService interface {
 	Login(input request.AuthRequest, c *gin.Context) (*response.AuthResponse, error)
 	RefreshToken(input request.RefreshTokenRequest, c *gin.Context) (*response.AuthResponse, error)
 	RevokeSession(id int) error
-	RevokeAllSessions(userID uint) error
+	Logout(userID uint) error
 	Register(id int, input request.RegisterRequest, c *gin.Context) error
 	GetUserByBranch(id int) ([]response.UserResponse, error)
 	UpdateUser(id int, input request.UserRequestUpdate) error
@@ -219,10 +219,11 @@ func (s *authservice) RevokeSession(id int) error {
 	return nil
 }
 
-func (s *authservice) RevokeAllSessions(userID uint) error {
-	return s.db.Model(&model.Session{}).
-		Where("user_id = ?", userID).
-		Update("is_revoked", true).Error
+func (s *authservice) Logout(userID uint) error {
+	if err := s.db.Where("user_id =?", userID).Delete(&model.Session{}).Error; err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *authservice) GetUserByBranch(id int) ([]response.UserResponse, error) {

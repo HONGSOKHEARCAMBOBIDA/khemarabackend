@@ -169,4 +169,5 @@ const (
 
 	// Session
 	RevokeSession = "revoke.session/:id"
+	Logout        = "logout.session"
 )

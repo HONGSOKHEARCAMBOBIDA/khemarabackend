@@ -53,7 +53,7 @@ func SetupRoutes(r *gin.Engine) {
 	auth := r.Group("/")
 	auth.Use(middleware.AuthMiddleware())
 	auth.DELETE("/sessions/:id", middleware.AuthMiddleware(), authcontroller.RevokeSession)
-	auth.DELETE("/sessions", middleware.AuthMiddleware(), authcontroller.RevokeAllSessions)
+	//auth.DELETE("/sessions", middleware.AuthMiddleware(), authcontroller.Logout)
 
 	{ //Role
 		auth.GET(route.ViewRole, middleware.PermissionMiddleware(permission.ViewRole), rolecontroller.GetRole)
@@ -159,6 +159,7 @@ func SetupRoutes(r *gin.Engine) {
 
 		// Session
 		auth.DELETE(route.RevokeSession, middleware.PermissionMiddleware(permission.RevokeSession), authcontroller.RevokeSession)
+		auth.DELETE(route.Logout, middleware.PermissionMiddleware(permission.RevokeSession), authcontroller.Logout)
 		// Part
 		auth.GET(route.ViewPart, middleware.PermissionMiddleware(permission.ViewPart), partcontroller.GetPart)
 
